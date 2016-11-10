@@ -1,0 +1,146 @@
+#define TRUE 1
+#define FALSE 0
+#define DEBUG FALSE
+
+//#define tansig(e) (1.0f / (1.0f + exp(-e)))
+#define tansig(e) (2.0f/(1.0f + exp(-e))-1.0f)
+
+
+__kernel void activation(__global float * matrix, uint rows, uint columns)
+{
+    uint x = get_global_id(0);
+    uint y = get_global_id(1);
+
+    if (x < columns && y < rows)
+        matrix[y * columns + x] = tansig(matrix[y * columns + x]);
+}
+
+//Chi Squared
+
+static void inline reduceInline(uint localId, __global float * partialSums, __local float * localSums)
+{
+	for (uint stride = get_local_size(0) / 2; stride > 0; stride /= 2) {
+		barrier(CLK_LOCAL_MEM_FENCE);
+
+		if (localId < stride)
+			localSums[localId] += localSums[localId + stride];
+	}
+
+	if (localId == 0) {
+		partialSums[get_group_id(0)] = localSums[0];
+
+	}
+}
+
+static float inline res(float fy, float y)
+{
+	float r = fy - y;
+	return r * r;
+}
+
+__kernel void chiSquared(__global const float * fy, __global const float * y,
+						 __local float * localSums, __global float * partialSums, uint n)
+{
+	uint globalId = get_global_id(0);
+	uint localId  = get_local_id(0);
+	uint index = get_group_id(0) * get_local_size(0) + localId;
+
+	localSums[localId] = (index < n) ? res(fy[globalId], y[globalId]) : 0.0f;
+	reduceInline(localId, partialSums, localSums);
+}
+
+__kernel void chiSquaredReduce(__global float * partialSums, __local float * localSums)
+{
+	uint localId  = get_local_id(0);
+	localSums[localId] = partialSums[get_global_id(0)];
+	reduceInline(localId, partialSums, localSums);
+}
+
+//Jacobian
+__kernel void jacobian(__global float * jacobian, __global float * inputs, uint columnsG, uint rowsI, uint columnsI, uint offset, uint slope)
+{
+	uint x = get_global_id(0);
+	uint y = get_global_id(1);
+
+	if (x < columnsI && y < rowsI) {
+
+		float value = inputs[y * columnsI + x];
+
+		for (uint i = 0; i < slope; ++i) {
+			jacobian[y * columnsG + x * slope + i + offset] = value;
+		}
+	}
+}
+
+__kernel void delta(__global float * delta, __global float * y, __global float * f, __global float * jacobian, uint ny, uint npar)
+{
+	uint x = get_global_id(0);
+
+#if DEBUG
+	if (x == 0) {
+		printf("ny = %d - npar = %d\n", ny, npar);
+	}
+#endif
+
+	if (x < npar) {
+		float sum = 0.0f;
+		for (uint i = 0; i < ny; ++i) {
+			sum += (y[i] - f[i]) * jacobian[i * npar + x];
+		}
+		delta[x] = sum;
+	}
+}
+
+#define TOL 1e-30f
+#define a(r, c) a[(r * npar + c)]
+#define l(r, c) l[(r * npar + c)]
+
+
+__kernel void choleskyDecomposition(__global float * l, __global float * a, uint npar, float alpha, __global uint * ill)
+{
+
+	uint y = get_global_id(0); //Cols
+	if (y >= npar) {
+		return;
+	}
+	float sum;
+	float diag;
+
+	a(y, y) *= alpha;
+	barrier(CLK_GLOBAL_MEM_FENCE);
+
+	for(uint x = 0; x < npar; ++x) { //Rows
+
+		sum = a(x, x);
+		for (uint k = 0; k < x; ++k) {
+			float val = l(k, x);
+			sum -= val * val;
+		}
+		if (sum < TOL) {
+			ill[0] = 1;
+			return;
+		}
+		diag = sqrt(sum);
+		l(x, x) = diag;
+
+		barrier(CLK_GLOBAL_MEM_FENCE);
+
+		if (y > x) {
+			sum = a(x, y);
+			for (uint k = 0; k < y; ++k) {
+				sum -= l(k, x) * l(k, y);
+			}
+			l(x, y) = sum / diag;
+		}
+
+		barrier(CLK_GLOBAL_MEM_FENCE);
+	}
+}
+
+__kernel void updateWeights(__global float * weights, __global float * delta, uint nWeights)
+{
+	uint x = get_global_id(0);
+	if (x < nWeights) {
+		weights[x] += delta[x];
+	}
+}

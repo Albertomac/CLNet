@@ -7,24 +7,47 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F31C55021DD24442007AA183 /* libclBLAS.2.6.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F31C55011DD24442007AA183 /* libclBLAS.2.6.0.dylib */; };
+		F33124ED1DCF35880009950C /* CLAnn.c in Sources */ = {isa = PBXBuildFile; fileRef = F33124EB1DCF35880009950C /* CLAnn.c */; };
+		F33124F11DCF762C0009950C /* Kernels.ocl in CopyFiles */ = {isa = PBXBuildFile; fileRef = F33124F01DCF71600009950C /* Kernels.ocl */; };
+		F3413CEE1DD1F1D7006BC6BB /* CLRandom.c in Sources */ = {isa = PBXBuildFile; fileRef = F3413CEC1DD1F1D7006BC6BB /* CLRandom.c */; };
+		F3B7EF0C1DD330CF0046EC7C /* CLBenchmark.c in Sources */ = {isa = PBXBuildFile; fileRef = F3B7EF0A1DD330CF0046EC7C /* CLBenchmark.c */; };
 		F3C018ED1DCE423400062459 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = F3C018EC1DCE423400062459 /* main.c */; };
+		F3C018F61DCE427900062459 /* CLManager.c in Sources */ = {isa = PBXBuildFile; fileRef = F3C018F31DCE427900062459 /* CLManager.c */; };
+		F3C018F91DCE45F200062459 /* CLMatrix.c in Sources */ = {isa = PBXBuildFile; fileRef = F3C018F71DCE45F200062459 /* CLMatrix.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		F3C018E71DCE423400062459 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = /usr/share/man/man1/;
-			dstSubfolderSpec = 0;
+			buildActionMask = 12;
+			dstPath = "";
+			dstSubfolderSpec = 16;
 			files = (
+				F33124F11DCF762C0009950C /* Kernels.ocl in CopyFiles */,
 			);
-			runOnlyForDeploymentPostprocessing = 1;
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		F31C55011DD24442007AA183 /* libclBLAS.2.6.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libclBLAS.2.6.0.dylib; sourceTree = "<group>"; };
+		F33124EB1DCF35880009950C /* CLAnn.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CLAnn.c; sourceTree = "<group>"; };
+		F33124EC1DCF35880009950C /* CLAnn.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CLAnn.h; sourceTree = "<group>"; };
+		F33124F01DCF71600009950C /* Kernels.ocl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Kernels.ocl; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.opencl; };
+		F3413CEC1DD1F1D7006BC6BB /* CLRandom.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CLRandom.c; sourceTree = "<group>"; };
+		F3413CED1DD1F1D7006BC6BB /* CLRandom.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CLRandom.h; sourceTree = "<group>"; };
+		F3413CEF1DD20C77006BC6BB /* SimpleClassDataset.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SimpleClassDataset.h; sourceTree = "<group>"; };
+		F3B7EF0A1DD330CF0046EC7C /* CLBenchmark.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CLBenchmark.c; sourceTree = "<group>"; };
+		F3B7EF0B1DD330CF0046EC7C /* CLBenchmark.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CLBenchmark.h; sourceTree = "<group>"; };
 		F3C018E91DCE423400062459 /* CLAnnLMA */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = CLAnnLMA; sourceTree = BUILT_PRODUCTS_DIR; };
 		F3C018EC1DCE423400062459 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		F3C018F31DCE427900062459 /* CLManager.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CLManager.c; sourceTree = "<group>"; };
+		F3C018F41DCE427900062459 /* CLManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CLManager.h; sourceTree = "<group>"; };
+		F3C018F51DCE427900062459 /* Common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Common.h; sourceTree = "<group>"; };
+		F3C018F71DCE45F200062459 /* CLMatrix.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CLMatrix.c; sourceTree = "<group>"; };
+		F3C018F81DCE45F200062459 /* CLMatrix.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CLMatrix.h; sourceTree = "<group>"; };
+		F3C1B4491DD2956C008E59D9 /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -32,6 +55,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F31C55021DD24442007AA183 /* libclBLAS.2.6.0.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -58,6 +82,21 @@
 			isa = PBXGroup;
 			children = (
 				F3C018EC1DCE423400062459 /* main.c */,
+				F3C018F51DCE427900062459 /* Common.h */,
+				F3C018F41DCE427900062459 /* CLManager.h */,
+				F3C018F31DCE427900062459 /* CLManager.c */,
+				F33124EC1DCF35880009950C /* CLAnn.h */,
+				F33124EB1DCF35880009950C /* CLAnn.c */,
+				F3C018F81DCE45F200062459 /* CLMatrix.h */,
+				F3C018F71DCE45F200062459 /* CLMatrix.c */,
+				F31C55011DD24442007AA183 /* libclBLAS.2.6.0.dylib */,
+				F33124F01DCF71600009950C /* Kernels.ocl */,
+				F3413CED1DD1F1D7006BC6BB /* CLRandom.h */,
+				F3413CEC1DD1F1D7006BC6BB /* CLRandom.c */,
+				F3413CEF1DD20C77006BC6BB /* SimpleClassDataset.h */,
+				F3C1B4491DD2956C008E59D9 /* Makefile */,
+				F3B7EF0B1DD330CF0046EC7C /* CLBenchmark.h */,
+				F3B7EF0A1DD330CF0046EC7C /* CLBenchmark.c */,
 			);
 			path = CLAnnLMA;
 			sourceTree = "<group>";
@@ -118,7 +157,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F33124ED1DCF35880009950C /* CLAnn.c in Sources */,
+				F3C018F61DCE427900062459 /* CLManager.c in Sources */,
+				F3B7EF0C1DD330CF0046EC7C /* CLBenchmark.c in Sources */,
+				F3413CEE1DD1F1D7006BC6BB /* CLRandom.c in Sources */,
 				F3C018ED1DCE423400062459 /* main.c in Sources */,
+				F3C018F91DCE45F200062459 /* CLMatrix.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -207,6 +251,10 @@
 		F3C018F11DCE423400062459 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/CLAnnLMA",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -214,6 +262,10 @@
 		F3C018F21DCE423400062459 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/CLAnnLMA",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
@@ -237,6 +289,7 @@
 				F3C018F21DCE423400062459 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
