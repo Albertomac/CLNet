@@ -3,8 +3,8 @@
 #define DEBUG FALSE
 
 //#define tansig(e) (1.0f / (1.0f + exp(-e)))
-#define tansig(e) (2.0f/(1.0f + exp(-e))-1.0f)
-
+#define tansig(e) (2.0f/(1.0f + exp(-2.0f * e))-1.0f)
+//#define tansig(e) e
 
 __kernel void activation(__global float * matrix, uint rows, uint columns)
 {

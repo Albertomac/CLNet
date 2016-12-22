@@ -336,7 +336,7 @@ void CLAnnJacobian(CLAnn * nn)
 	CLSize loads = nn->inputs->elements;
 	CLSize stores = nn->nHiddens * nn->jacobian->rows;
 	CLSize elements = nn->inputs->elements + (nn->nHiddens * nn->jacobian->rows);
-	CLSize dataSize = nn->inputs->size + (sizeof(CLFloat) * nn->nHiddens * nn->jacobian->rows);
+	CLSize dataSize = sizeof(CLFloat) * (loads + stores);
 	CLSize operations = 1;
 	CLBenchmarkLog(eventJacobian[0], eventJacobian[0], loads, stores, elements, dataSize, operations, "jacobian[0]");
 #endif
@@ -362,7 +362,7 @@ void CLAnnJacobian(CLAnn * nn)
 	loads = nn->hActivations->elements;
 	stores = nn->nTargets * nn->jacobian->rows;
 	elements = nn->hActivations->elements + (nn->nTargets * nn->jacobian->rows);
-	dataSize = nn->hActivations->size + (sizeof(CLFloat) * nn->nTargets * nn->jacobian->rows);
+	dataSize = sizeof(CLFloat) * (loads + stores);
 	operations = 1;
 	CLBenchmarkLog(eventJacobian[1], eventJacobian[1], loads, stores, elements, dataSize, operations, "jacobian[1]");
 #endif
@@ -671,7 +671,7 @@ void CLAnnPrintResults(CLAnn * nn)
 			CLFloat target = nn->targets->values[p * nn->nTargets + o];
 			CLFloat output = nn->outputs->values[p * nn->nTargets + o];
 			CLFloat diff = target - output;
-			printf("target: %0.4f - output: %0.4f - diff: %0.4f\n", target, output, diff);
+			printf("target[%d]: %10g\toutput: %10g\tdiff: %10g\tperc: %10g\n",p * nn->nTargets + o, target, output, diff, (diff / target * 100.0f));
 		}
 	}
 //	CLMatrixPrint(nn->targets, CLMatrixNoTrans);

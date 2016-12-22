@@ -20,10 +20,19 @@ void fillRandom(CLFloat * values, CLUInt nValues)
 	}
 }
 
+void fillInput(CLFloat * values, CLUInt nValues)
+{
+	for (CLUInt i = 0; i < nValues; ++i) {
+		values[i] = (CLFloat)i / nValues;
+	}
+}
+
 
 CLFloat poly(CLFloat a, CLFloat b)
 {
-	return 0.1 * a + 0.2 * b - 0.1;
+//	return 0.1 * a + 0.2 * b - 0.1;
+	return cos(a);
+
 }
 
 int main(int argc, const char * argv[]) {
@@ -60,17 +69,21 @@ int main(int argc, const char * argv[]) {
 						  0.0};
 #else
 	name = "Poly";
-	nPattern = 20;
+	nPattern = 100;
 	nInputs = 3;
-	nHiddens = 10;
+	nHiddens = 4;
 	nOutputs = 1;
 
 	CLFloat * _inputs = malloc(sizeof(CLFloat) * nInputs * nPattern);
-	fillRandom(_inputs, nInputs * nPattern);
+	fillInput(_inputs, nInputs * nPattern);
+
+	for (CLUInt i = 0; i < nInputs * nPattern; i += nInputs) {
+		_inputs[i] = 1;
+	}
 
 	CLFloat * _outputs = malloc(sizeof(CLFloat) * nOutputs * nPattern);
-	for(CLUInt i = 0, o = 0; i < nInputs * nPattern; i += nInputs, ++o) {
-		_outputs[o] = poly(_inputs[i], _inputs[i + 1]);
+	for(CLUInt i = 1, o = 0; i < nInputs * nPattern; i += nInputs, ++o) {
+		_outputs[o] = poly(_inputs[i], _inputs[i+1]);
 	}
 
 #endif
@@ -101,21 +114,21 @@ int main(int argc, const char * argv[]) {
 	CLAnnForward(net, CLTrue, CLFalse);
 	CLAnnPrintResults(net);
 
-	printf("\n");
-	fillRandom(_inputs, nInputs * nPattern);
-	for(CLUInt i = 0, o = 0; i < nInputs * nPattern; i += nInputs, ++o) {
-		_outputs[o] = poly(_inputs[i], _inputs[i + 1], _inputs[i + 2]);
-	}
+//	printf("\n");
+//	fillRandom(_inputs, nInputs * nPattern);
+//	for(CLUInt i = 0, o = 0; i < nInputs * nPattern; i += nInputs, ++o) {
+//		_outputs[o] = poly(_inputs[i], _inputs[i + 1]);
+//	}
 
-	CLMatrixUpdateValues(net->inputs, _inputs);
-	CLMatrixReleaseMem(net->inputs);
-	CLMatrixCreateMemHostVar(net->inputs, net->context, CL_MEM_READ_ONLY);
-	CLMatrixUpdateValues(net->targets, _outputs);
-	CLMatrixReleaseMem(net->targets);
-	CLMatrixCreateMemHostVar(net->targets, net->context, CL_MEM_READ_ONLY);
-
-	CLAnnForward(net, CLTrue, CLFalse);
-	CLAnnPrintResults(net);
+//	CLMatrixUpdateValues(net->inputs, _inputs);
+//	CLMatrixReleaseMem(net->inputs);
+//	CLMatrixCreateMemHostVar(net->inputs, net->context, CL_MEM_READ_ONLY);
+//	CLMatrixUpdateValues(net->targets, _outputs);
+//	CLMatrixReleaseMem(net->targets);
+//	CLMatrixCreateMemHostVar(net->targets, net->context, CL_MEM_READ_ONLY);
+//
+//	CLAnnForward(net, CLTrue, CLFalse);
+//	CLAnnPrintResults(net);
 
 	CLAnnRelease(net);
 

@@ -27,6 +27,6 @@ void CLBenchmarkLog(CLEvent start, CLEvent finish, CLSize loads, CLSize stores, 
 	bandwidth = dataSize / totalTimeNS;
 	flops = operations / totalTimeNS;
 	//name - elements - time - bandwidth - flops
-	fprintf(f, "%s;%zu;%0.5f;%0.5f;%0.5f\n", name, elements, totalTimeMS, bandwidth, flops);
+	fprintf(f, "%s\t%zu\t%10g\t%10g\t%10g\n", name, elements, totalTimeMS, bandwidth, flops);
 
 }
