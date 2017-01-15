@@ -42,6 +42,8 @@ CLDevice CLSelectDevice(CLPlatform platform, CLInt deviceIndex);
 CLContext CLCreateContext(CLPlatform platform, CLDevice device);
 CLQueue CLCreateQueue(CLContext context, CLDevice device);
 CLProgram CLCreateProgram(CLContext context, CLDevice device, CLStringConst fileName);
+CLProgram CLCreateProgramWithMacro(CLContext context, CLDevice device, CLStringConst fileName, CLStringConst macro);
+
 CLKernel CLCreateKernel(CLProgram program, CLStringConst name);
 CLMem CLCreateBufferHostVar(CLContext context, CLMemFlags flags, CLSize size, void * hostVar, CLStringConst name);
 CLMem CLCreateBuffer(CLContext context, CLMemFlags flags, CLSize size, CLStringConst name);

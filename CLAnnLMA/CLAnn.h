@@ -13,6 +13,29 @@
 #include "CLManager.h"
 #include "CLMatrix.h"
 
+/*
+ TODO:
+ use weightsTemps and copy weights when needed with clEnqueueCopyBuffers
+ normalization of inputs using clblasSnrm2
+ hidden multi layers
+ 
+ benchmarks file with useful runs
+ improve opencl kernels
+
+ //[ NON SI PUO' FARE ]
+ //Packed vuol dire che la matrice è linearizzata, tipo una matrice trinagolare viene linearizzata eliminando gli zeri che stanno sopra (o sotto) alla diagonale.
+ //Banded vuol dire che la matrice contiene degli zeri e si può risparmiare spazio e di conseguenza è più veloce nell'effettuare operazioni
+ //improve clblas with banded operations
+
+ getting works clblas for cpu
+
+ new Name for the project
+ */
+
+#define ACTIVATION_LINEAR  0
+#define ACTIVATION_SIGMOID 1 //Logistic
+#define ACTIVATION_TANSIG  2
+
 typedef struct {
 
 	//OpenCL
@@ -40,6 +63,7 @@ typedef struct {
 	CLMatrix * targets;
 
 	CLMatrix * weights;
+	CLMatrix * weightsTemp;
 	CLMatrix * outputs;
 
 	CLMatrix * hActivations;
@@ -62,8 +86,10 @@ typedef struct {
 } CLAnn;
 
 void CLAnnInit(CLAnn * nn, CLUInt nPatterns, CLUInt nInputs, CLUInt nHiddens, CLUInt nTargets, CLStringConst name);
+void CLAnnUpdateWithRandomWeights(CLAnn * nn);
 
-void CLAnnSetupTrainingFor(CLAnn *nn, CLPlatform platform, CLDevice device);
+void CLAnnSetupTrainingFor(CLAnn * nn, CLPlatform platform, CLDevice device, int activationFunction);
+void CLAnnNormalizePatterns(CLAnn * nn);
 void CLAnnForward(CLAnn * nn, CLUInt updateWeightsFromHost, CLUInt printOutputs);
 CLFloat CLAnnChiSquared(CLAnn * nn);
 void CLAnnJacobian(CLAnn * nn);
@@ -71,7 +97,7 @@ void CLAnnHessian(CLAnn * nn);
 void CLAnnCholeskyDecomposition(CLAnn * nn, CLFloat mult);
 void CLAnnCholeskySolve(CLAnn * nn);
 
-CLUInt CLAnnTraining(CLAnn * nn);
+CLUInt CLAnnTraining(CLAnn * nn, CLBool normalizePatterns);
 
 void CLAnnPrintResults(CLAnn * nn);
 

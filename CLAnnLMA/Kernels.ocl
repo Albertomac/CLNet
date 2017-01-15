@@ -2,9 +2,9 @@
 #define FALSE 0
 #define DEBUG FALSE
 
-//#define tansig(e) (1.0f / (1.0f + exp(-e)))
-#define tansig(e) (2.0f/(1.0f + exp(-2.0f * e))-1.0f)
-//#define tansig(e) e
+//#define activationFunction(e) e
+//#define activationFunction(e) (1.0f / (1.0f + exp(-e)))
+//#define activationFunction(e) (2.0f/(1.0f + exp(-2.0f * e))-1.0f)
 
 __kernel void activation(__global float * matrix, uint rows, uint columns)
 {
@@ -12,7 +12,7 @@ __kernel void activation(__global float * matrix, uint rows, uint columns)
     uint y = get_global_id(1);
 
     if (x < columns && y < rows)
-        matrix[y * columns + x] = tansig(matrix[y * columns + x]);
+        matrix[y * columns + x] = activationFunction(matrix[y * columns + x]);
 }
 
 //Chi Squared

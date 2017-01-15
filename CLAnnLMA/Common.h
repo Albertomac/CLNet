@@ -21,7 +21,7 @@
 #define CLFalse 0
 
 //Benchmark
-#define BENCHMARK CLTrue
+#define BENCHMARK CLFalse
 
 //Debug
 #define DEBUG_LOG CLFalse
@@ -45,6 +45,7 @@ do { if (DEBUG_LOG) fprintf(stderr, fmt, __VA_ARGS__); } while (0)
 #define CLDeviceType cl_device_type
 
 
+#define CLBool	 cl_int
 #define CLChar   cl_char
 #define CLUChar  cl_uchar
 #define CLShort  cl_short

@@ -33,11 +33,14 @@ void CLMatrixInit(CLMatrix * matrix, CLUInt rows, CLUInt columns, CLStringConst 
 void CLMatrixInitWithCLMem(CLMatrix * matrix, CLMem mem, CLUInt rows, CLUInt columns, CLStringConst name);
 void CLMatrixInitWithValues(CLMatrix * matrix, CLFloat * values, CLUInt rows, CLUInt columns, CLUInt copyValues, CLStringConst name);
 
+//CSV
+void CLMatrixInitWithCSV(CLMatrix * matrix, CLStringConst file);
+void CLMatrixSaveCSV(CLMatrix * matrix, CLStringConst file);
+
 void CLMatrixFillRandom(CLMatrix * matrix);
 void CLMatrixFillValue(CLMatrix * matrix, CLFloat value);
 void CLMatrixUpdateValues(CLMatrix * matrix, const CLFloat * newValues);
 
-void CLMatrixCreateMem(CLMatrix * matrix, CLContext context, CLMemFlags flags);
 void CLMatrixCreateMemHostVar(CLMatrix * matrix, CLContext context, CLMemFlags flags);
 void CLMatrixUpdateValuesFromMem(CLMatrix * matrix, CLQueue queue);
 

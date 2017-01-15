@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		F31C55021DD24442007AA183 /* libclBLAS.2.6.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F31C55011DD24442007AA183 /* libclBLAS.2.6.0.dylib */; };
+		F32338161E12C6F3007E915D /* csvparser.c in Sources */ = {isa = PBXBuildFile; fileRef = F32338141E12C6F3007E915D /* csvparser.c */; };
 		F33124ED1DCF35880009950C /* CLAnn.c in Sources */ = {isa = PBXBuildFile; fileRef = F33124EB1DCF35880009950C /* CLAnn.c */; };
 		F33124F11DCF762C0009950C /* Kernels.ocl in CopyFiles */ = {isa = PBXBuildFile; fileRef = F33124F01DCF71600009950C /* Kernels.ocl */; };
 		F3413CEE1DD1F1D7006BC6BB /* CLRandom.c in Sources */ = {isa = PBXBuildFile; fileRef = F3413CEC1DD1F1D7006BC6BB /* CLRandom.c */; };
@@ -32,6 +33,8 @@
 
 /* Begin PBXFileReference section */
 		F31C55011DD24442007AA183 /* libclBLAS.2.6.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libclBLAS.2.6.0.dylib; sourceTree = "<group>"; };
+		F32338141E12C6F3007E915D /* csvparser.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = csvparser.c; sourceTree = "<group>"; };
+		F32338151E12C6F3007E915D /* csvparser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = csvparser.h; sourceTree = "<group>"; };
 		F33124EB1DCF35880009950C /* CLAnn.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CLAnn.c; sourceTree = "<group>"; };
 		F33124EC1DCF35880009950C /* CLAnn.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CLAnn.h; sourceTree = "<group>"; };
 		F33124F01DCF71600009950C /* Kernels.ocl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Kernels.ocl; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.opencl; };
@@ -97,6 +100,8 @@
 				F3C1B4491DD2956C008E59D9 /* Makefile */,
 				F3B7EF0B1DD330CF0046EC7C /* CLBenchmark.h */,
 				F3B7EF0A1DD330CF0046EC7C /* CLBenchmark.c */,
+				F32338151E12C6F3007E915D /* csvparser.h */,
+				F32338141E12C6F3007E915D /* csvparser.c */,
 			);
 			path = CLAnnLMA;
 			sourceTree = "<group>";
@@ -163,6 +168,7 @@
 				F3413CEE1DD1F1D7006BC6BB /* CLRandom.c in Sources */,
 				F3C018ED1DCE423400062459 /* main.c in Sources */,
 				F3C018F91DCE45F200062459 /* CLMatrix.c in Sources */,
+				F32338161E12C6F3007E915D /* csvparser.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -191,7 +197,7 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -234,7 +240,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;

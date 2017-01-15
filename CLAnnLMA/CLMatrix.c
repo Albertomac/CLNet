@@ -12,6 +12,7 @@
 #include <float.h>
 #include <strings.h>
 #include "CLRandom.h"
+#include "csvparser.h"
 
 void CLMatrixInit(CLMatrix * matrix, CLUInt rows, CLUInt columns, CLStringConst name)
 {
@@ -23,7 +24,7 @@ void CLMatrixInit(CLMatrix * matrix, CLUInt rows, CLUInt columns, CLStringConst 
 	matrix->size = sizeof(CLFloat) * matrix->elements;
 
 	matrix->values = malloc(matrix->size);
-
+	CLMatrixFillValue(matrix, 0.0f);
 }
 
 void CLMatrixInitWithCLMem(CLMatrix * matrix, CLMem mem, CLUInt rows, CLUInt columns, CLStringConst name)
@@ -48,6 +49,59 @@ void CLMatrixInitWithValues(CLMatrix * matrix, CLFloat * values, CLUInt rows, CL
 	}
 }
 
+void CLMatrixInitWithCSV(CLMatrix * matrix, CLStringConst file)
+{
+	int i =  0;
+	CsvParser * csvparser = CsvParser_new(file, ";", 1);
+	CsvRow * header;
+	CsvRow * row;
+
+	header = CsvParser_getHeader(csvparser);
+	if (header == NULL) {
+		fprintf(stderr, "%s\n", CsvParser_getErrorMessage(csvparser));
+		return;
+	}
+
+	CLString * headerFields = CsvParser_getFields(header);
+	//Header: name;rows;columns;
+	if (CsvParser_getNumFields(header) != 3) {
+		fprintf(stderr, "CSV File Header error.\n");
+	}
+
+	strcpy(matrix->name, headerFields[0]);
+	matrix->rows = atoi(headerFields[1]);
+	matrix->columns = atoi(headerFields[2]);
+	matrix->elements = matrix->rows * matrix->columns;
+	matrix->size = sizeof(CLFloat) * matrix->elements;
+
+	while ((row = CsvParser_getRow(csvparser)) ) {
+		CLString * rowFields = CsvParser_getFields(row);
+		for (i = 0 ; i < CsvParser_getNumFields(row) ; i++) {
+			matrix->values[i] = atof(rowFields[i]);
+		}
+		CsvParser_destroy_row(row);
+	}
+	CsvParser_destroy(csvparser);
+}
+
+void CLMatrixSaveCSV(CLMatrix * matrix, CLStringConst file)
+{
+	FILE * f = fopen(file, "w+");
+
+	if (f == NULL) {
+		fprintf(stderr, "Cannot create file %s", file);
+		return;
+	}
+
+	fprintf(f, "%s;%d;%d;\n", matrix->name, matrix->rows, matrix->columns);
+
+	for (CLUInt i = 0; i < matrix->elements; ++i) {
+		fprintf(f, "%f;", matrix->values[i]);
+	}
+	
+	fclose(f);
+}
+
 void CLMatrixFillRandom(CLMatrix * matrix)
 {
 	for (CLUInt i = 0; i < matrix->elements; ++i) {
@@ -67,11 +121,6 @@ void CLMatrixUpdateValues(CLMatrix * matrix, const CLFloat * newValues)
 	for (CLUInt i = 0; i < matrix->elements; ++i) {
 		matrix->values[i] = newValues[i];
 	}
-}
-
-void CLMatrixCreateMem(CLMatrix * matrix, CLContext context, CLMemFlags flags)
-{
-	matrix->mem = CLCreateBuffer(context, flags, matrix->size, matrix->name);
 }
 
 void CLMatrixCreateMemHostVar(CLMatrix * matrix, CLContext context, CLMemFlags flags)
@@ -131,7 +180,6 @@ void CLMatrixPrint(CLMatrix * matrix, CLMatrixTranspose transpose)
 		for (CLUInt c = 0; c < cols; ++c) {
 			CLUInt index = (transpose == CLMatrixTrans) ? c * cols + r : r * cols + c;
 			printf("%8.5g ", matrix->values[index]);
-//			printf("%+0.2f ", matrix->values[index]);
 
 		}
 		printf("\n");

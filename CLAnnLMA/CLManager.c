@@ -222,14 +222,19 @@ CLQueue CLCreateQueue(CLContext context, CLDevice device)
 	return queue;
 }
 
-CLProgram CLCreateProgram(CLContext context, CLDevice device, CLStringConst fileName)
+CLProgram CLCreateProgramWithMacro(CLContext context, CLDevice device, CLStringConst fileName, CLStringConst macro)
 {
 	CLInt error;
 	CLProgram program;
 
 	CLString buffer = (CLString)calloc(BUFFER_SIZE, sizeof(CLChar));
 	time_t now = time(NULL);
-	snprintf(buffer, BUFFER_SIZE-1, "//%s#include \"%s\"\n", ctime(&now), fileName);
+
+	if (macro != NULL) {
+		snprintf(buffer, BUFFER_SIZE-1, "//%s\n%s\n#include \"%s\"\n", ctime(&now), macro, fileName);
+	} else {
+		snprintf(buffer, BUFFER_SIZE-1, "//%s#include \"%s\"\n", ctime(&now), fileName);
+	}
 
 	debugLog("'codice':\n%s\n", buffer);
 	CLStringConst ptrBuff = buffer;
@@ -246,6 +251,11 @@ CLProgram CLCreateProgram(CLContext context, CLDevice device, CLStringConst file
 			 "%s\n", buffer);
 
 	return program;
+}
+
+CLProgram CLCreateProgram(CLContext context, CLDevice device, CLStringConst fileName)
+{
+	return CLCreateProgramWithMacro(context, device, fileName, NULL);
 }
 
 CLKernel CLCreateKernel(CLProgram program, CLStringConst name)
