@@ -126,26 +126,38 @@ void CLMatrixUpdateValues(CLMatrix * matrix, const CLFloat * newValues)
 
 void CLMatrixNormalize(CLMatrix * matrix)
 {
-	CLFloat min = matrix->values[0];
-	CLFloat max = matrix->values[0];
+//	CLFloat min = matrix->values[0];
+//	CLFloat max = matrix->values[0];
+//
+//	for (CLUInt i = 0; i < matrix->elements; ++i) {
+//		CLFloat val = matrix->values[i];
+//		if (val > max) {
+//			max	= val;
+//		}
+//
+//		if (val < min) {
+//			min = val;
+//		}
+//	}
+//
+//	// y_norm = (y - y_min) / (y_max - y_min)
+//	CLFloat denom = max - min;
+//
+//	for (CLUInt i = 0; i < matrix->elements; ++i) {
+//		CLFloat val = matrix->values[i];
+//		matrix->values[i] = (val - min) / denom;
+//	}
 
-	for (CLUInt i = 0; i < matrix->elements; ++i) {
+	CLFloat max = fabs(matrix->values[0]);
+	for (CLUInt i = 1 ; i < matrix->elements; ++i) {
 		CLFloat val = matrix->values[i];
-		if (val > max) {
-			max	= val;
-		}
-
-		if (val < min) {
-			min = val;
+		if (fabs(val) > max) {
+			max = val;
 		}
 	}
 
-	// y_norm = (y - y_min) / (y_max - y_min)
-	CLFloat denom = max - min;
-
 	for (CLUInt i = 0; i < matrix->elements; ++i) {
-		CLFloat val = matrix->values[i];
-		matrix->values[i] = (val - min) / denom;
+		matrix->values[i] = matrix->values[i] / max;
 	}
 }
 

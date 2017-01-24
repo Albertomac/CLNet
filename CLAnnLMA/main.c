@@ -61,7 +61,7 @@ void setupNetForXOR(CLAnn * net)
 		1.0,
 		0.0};
 
-	CLAnnInit(net, 0.7f, nPattern, nInputs, nHiddenLayers, nNeuronsPerLayer, nOutputs, name);
+	CLAnnInit(net, nPattern, nInputs, nHiddenLayers, nNeuronsPerLayer, nOutputs, name);
 
 	CLMatrixUpdateValues(net->inputs, _inputs);
 	CLMatrixUpdateValues(net->targets, _outputs);
@@ -90,7 +90,7 @@ void setupNetForPoly(CLAnn * net)
 		_outputs[o] = poly(_inputs[i], _inputs[i+1]);
 	}
 
-	CLAnnInit(net, 0.7f, nPattern, nInputs, nHiddenLayers, nNeuronsPerLayer, nOutputs, name);
+	CLAnnInit(net, nPattern, nInputs, nHiddenLayers, nNeuronsPerLayer, nOutputs, name);
 
 	CLMatrixUpdateValues(net->inputs, _inputs);
 	CLMatrixUpdateValues(net->targets, _outputs);
@@ -106,7 +106,7 @@ void setupNetForIris(CLAnn * net)
 	CLUInt nNeuronsPerLayer = 10;
 	CLUInt nOutputs = 3;
 
-	CLAnnInit(net, 0.7f, nPattern, nInputs, nHiddenLayers, nNeuronsPerLayer, nOutputs, name);
+	CLAnnInit(net, nPattern, nInputs, nHiddenLayers, nNeuronsPerLayer, nOutputs, name);
 
 	CLMatrixInitWithCSV(net->inputs, "/Volumes/RamDisk/irisInputs.csv");
 	CLMatrixInitWithCSV(net->targets, "/Volumes/RamDisk/irisTargets.csv");
@@ -125,7 +125,7 @@ void setupNetForOrAnd(CLAnn * net)
 	CLUInt nNeuronsPerLayer = 3;
 	CLUInt nOutputs = 1;
 
-	CLAnnInit(net, 0.7f, nPattern, nInputs, nHiddenLayers, nNeuronsPerLayer, nOutputs, name);
+	CLAnnInit(net, nPattern, nInputs, nHiddenLayers, nNeuronsPerLayer, nOutputs, name);
 
 	CLMatrixInitWithCSV(net->inputs, "/Volumes/RamDisk/orAndInputs.csv");
 	CLMatrixInitWithCSV(net->targets, "/Volumes/RamDisk/orAndTargets.csv");
@@ -152,7 +152,7 @@ int main(int argc, const char * argv[]) {
 
 	CLAnn * net = malloc(sizeof(CLAnn));
 
-	switch (0) {
+	switch (2) {
 
 		case 0:
 			setupNetForXOR(net);

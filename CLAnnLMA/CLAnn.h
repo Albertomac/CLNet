@@ -91,7 +91,7 @@ typedef struct {
 	
 } CLAnn;
 
-void CLAnnInit(CLAnn * nn, CLFloat learningRate, CLUInt nPatterns, CLUInt nInputs, CLUInt nHiddenLayers, CLUInt nNeuronsPerLayer, CLUInt nTargets, CLStringConst name);
+void CLAnnInit(CLAnn * nn, CLUInt nPatterns, CLUInt nInputs, CLUInt nHiddenLayers, CLUInt nNeuronsPerLayer, CLUInt nTargets, CLStringConst name);
 void CLAnnUpdateWithRandomWeights(CLAnn * nn);
 
 void CLAnnSetupTrainingFor(CLAnn * nn, CLPlatform platform, CLDevice device, int activationFunction);

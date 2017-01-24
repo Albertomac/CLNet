@@ -21,7 +21,7 @@
 
 CLUInt BLOCK_SIZE = 32;
 
-void CLAnnInit(CLAnn * nn, CLFloat learningRate, CLUInt nPatterns, CLUInt nInputs, CLUInt nHiddenLayers, CLUInt nNeuronsPerLayer, CLUInt nTargets, CLStringConst name)
+void CLAnnInit(CLAnn * nn, CLUInt nPatterns, CLUInt nInputs, CLUInt nHiddenLayers, CLUInt nNeuronsPerLayer, CLUInt nTargets, CLStringConst name)
 {
 	nn->name = malloc(sizeof(CLChar) * 1024);
 	strcpy(nn->name, name);
@@ -48,8 +48,6 @@ void CLAnnInit(CLAnn * nn, CLFloat learningRate, CLUInt nPatterns, CLUInt nInput
 	nn->hessian = malloc(sizeof(CLMatrix));
 	nn->delta = malloc(sizeof(CLMatrix));
 	nn->cholesky = malloc(sizeof(CLMatrix));
-
-	nn->learningRate = learningRate;
 
 	nn->verbose = CLTrue;
 	nn->maxIteration = 10000;
@@ -680,7 +678,7 @@ void CLAnnUpdateWeights(CLAnn * nn)
 
 	clblasStatus status;
 	CLEvent eventUpdateWeights;
-	status = clblasSaxpy(nn->weights->elements, nn->learningRate, nn->delta->mem, 0, 1, nn->weights->mem, 0, 1, 1, &nn->queue, 0, NULL, &eventUpdateWeights);
+	status = clblasSaxpy(nn->weights->elements, 1, nn->delta->mem, 0, 1, nn->weights->mem, 0, 1, 1, &nn->queue, 0, NULL, &eventUpdateWeights);
 	if (status != CL_SUCCESS) {
 		debugLog("UpdateWeights errorCode: %d", status);
 		exit(status);
