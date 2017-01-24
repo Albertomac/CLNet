@@ -93,6 +93,7 @@ typedef struct {
 
 void CLAnnInit(CLAnn * nn, CLUInt nPatterns, CLUInt nInputs, CLUInt nHiddenLayers, CLUInt nNeuronsPerLayer, CLUInt nTargets, CLStringConst name);
 void CLAnnUpdateWithRandomWeights(CLAnn * nn);
+void CLAnnShufflePatterns(CLAnn * nn);
 
 void CLAnnSetupTrainingFor(CLAnn * nn, CLPlatform platform, CLDevice device, int activationFunction);
 void CLAnnForward(CLAnn * nn, CLUInt updateWeightsFromHost, CLUInt printOutputs);

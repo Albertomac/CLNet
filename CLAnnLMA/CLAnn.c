@@ -10,6 +10,7 @@
 #include <math.h>
 #include </usr/local/include/clBLAS.h>
 #include "CLBenchmark.h"
+#include "CLRandom.h"
 
 #define kClean "clean"
 #define kActivation "activation"
@@ -105,6 +106,28 @@ void CLAnnInit(CLAnn * nn, CLUInt nPatterns, CLUInt nInputs, CLUInt nHiddenLayer
 void CLAnnUpdateWithRandomWeights(CLAnn * nn)
 {
 	CLMatrixFillRandom(nn->weights);
+}
+
+void swapRow(CLMatrix * matrix, CLUInt aRow, CLUInt bRow)
+{
+	CLUInt cols = matrix->columns;
+	for (CLUInt i = 0; i < matrix->columns; ++i) {
+		CLFloat tmp = matrix->values[aRow * cols + i];
+		matrix->values[aRow * cols + i] = matrix->values[bRow * cols + i];
+		matrix->values[bRow * cols + i] = tmp;
+	}
+}
+
+void CLAnnShufflePatterns(CLAnn * nn)
+{
+	CLUInt rows = nn->inputs->rows;
+	if (rows > 1) {
+		for (CLUInt i = rows - 1; i > 0; --i) {
+			CLUInt j = CLRandomValue() * (i + 1);
+			swapRow(nn->inputs, i, j);
+			swapRow(nn->targets, i, j);
+		}
+	}
 }
 
 void CLAnnSetupTrainingFor(CLAnn * nn, CLPlatform platform, CLDevice device, int activationFunction)

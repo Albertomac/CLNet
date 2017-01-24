@@ -102,8 +102,8 @@ void setupNetForIris(CLAnn * net)
 	CLString name = "Iris";
 	CLUInt nPattern = 150;
 	CLUInt nInputs = 4;
-	CLUInt nHiddenLayers = 2;
-	CLUInt nNeuronsPerLayer = 10;
+	CLUInt nHiddenLayers = 1;
+	CLUInt nNeuronsPerLayer = 50;
 	CLUInt nOutputs = 3;
 
 	CLAnnInit(net, nPattern, nInputs, nHiddenLayers, nNeuronsPerLayer, nOutputs, name);
@@ -112,7 +112,8 @@ void setupNetForIris(CLAnn * net)
 	CLMatrixInitWithCSV(net->targets, "/Volumes/RamDisk/irisTargets.csv");
 
 	CLMatrixNormalize(net->inputs);
-
+	CLAnnShufflePatterns(net);
+	
 	CLAnnUpdateWithRandomWeights(net);
 }
 
@@ -152,7 +153,7 @@ int main(int argc, const char * argv[]) {
 
 	CLAnn * net = malloc(sizeof(CLAnn));
 
-	switch (2) {
+	switch (0) {
 
 		case 0:
 			setupNetForXOR(net);
