@@ -13,6 +13,13 @@
 #include "CLRandom.h"
 #include "CLBenchmark.h"
 
+
+//OpenCL stuff
+CLInt platformIndex = 0;
+CLInt deviceIndex = 2;
+CLPlatform platform;
+CLDevice device;
+
 void fillRandom(CLFloat * values, CLUInt nValues)
 {
 	for(CLUInt i = 0; i < nValues; ++i) {
@@ -30,8 +37,8 @@ void fillInput(CLFloat * values, CLUInt nValues)
 
 CLFloat poly(CLFloat a, CLFloat b)
 {
-//	return 0.1 * a + 0.2 * b - 0.1;
-	return cos(a);
+	return 0.1 * a + 0.2 * b - 0.1;
+	//return cos(a);
 
 }
 
@@ -40,7 +47,8 @@ void setupNetForXOR(CLAnn * net)
 	CLString name = "XOR";
 	CLUInt nPattern = 4;
 	CLUInt nInputs = 2;
-	CLUInt nHiddens = 10;
+	CLUInt nHiddenLayers = 1;
+	CLUInt nNeuronsPerLayer = 10;
 	CLUInt nOutputs = 1;
 
 	CLFloat _inputs[] = {0.0, 0.0,
@@ -53,7 +61,7 @@ void setupNetForXOR(CLAnn * net)
 		1.0,
 		0.0};
 
-	CLAnnInit(net, nPattern, nInputs, nHiddens, nOutputs, name);
+	CLAnnInit(net, 0.7f, nPattern, nInputs, nHiddenLayers, nNeuronsPerLayer, nOutputs, name);
 
 	CLMatrixUpdateValues(net->inputs, _inputs);
 	CLMatrixUpdateValues(net->targets, _outputs);
@@ -66,7 +74,8 @@ void setupNetForPoly(CLAnn * net)
 	CLString name = "Poly";
 	CLUInt nPattern = 100;
 	CLUInt nInputs = 3;
-	CLUInt nHiddens = 4;
+	CLUInt nHiddenLayers = 1;
+	CLUInt nNeuronsPerLayer = 4;
 	CLUInt nOutputs = 1;
 
 	CLFloat * _inputs = malloc(sizeof(CLFloat) * nInputs * nPattern);
@@ -81,12 +90,51 @@ void setupNetForPoly(CLAnn * net)
 		_outputs[o] = poly(_inputs[i], _inputs[i+1]);
 	}
 
-	CLAnnInit(net, nPattern, nInputs, nHiddens, nOutputs, name);
+	CLAnnInit(net, 0.7f, nPattern, nInputs, nHiddenLayers, nNeuronsPerLayer, nOutputs, name);
 
 	CLMatrixUpdateValues(net->inputs, _inputs);
 	CLMatrixUpdateValues(net->targets, _outputs);
 	CLAnnUpdateWithRandomWeights(net);
 }
+
+void setupNetForIris(CLAnn * net)
+{
+	CLString name = "Iris";
+	CLUInt nPattern = 150;
+	CLUInt nInputs = 4;
+	CLUInt nHiddenLayers = 2;
+	CLUInt nNeuronsPerLayer = 10;
+	CLUInt nOutputs = 3;
+
+	CLAnnInit(net, 0.7f, nPattern, nInputs, nHiddenLayers, nNeuronsPerLayer, nOutputs, name);
+
+	CLMatrixInitWithCSV(net->inputs, "/Volumes/RamDisk/irisInputs.csv");
+	CLMatrixInitWithCSV(net->targets, "/Volumes/RamDisk/irisTargets.csv");
+
+	CLMatrixNormalize(net->inputs);
+
+	CLAnnUpdateWithRandomWeights(net);
+}
+
+void setupNetForOrAnd(CLAnn * net)
+{
+	CLString name = "orAnd";
+	CLUInt nPattern = 8;
+	CLUInt nInputs = 3;
+	CLUInt nHiddenLayers = 2;
+	CLUInt nNeuronsPerLayer = 3;
+	CLUInt nOutputs = 1;
+
+	CLAnnInit(net, 0.7f, nPattern, nInputs, nHiddenLayers, nNeuronsPerLayer, nOutputs, name);
+
+	CLMatrixInitWithCSV(net->inputs, "/Volumes/RamDisk/orAndInputs.csv");
+	CLMatrixInitWithCSV(net->targets, "/Volumes/RamDisk/orAndTargets.csv");
+
+	CLMatrixNormalize(net->inputs);
+
+	CLAnnUpdateWithRandomWeights(net);
+}
+
 
 int main(int argc, const char * argv[]) {
 
@@ -99,22 +147,45 @@ int main(int argc, const char * argv[]) {
 	CLBenchmarkSetup(pathBenchmark);
 #endif
 
-	CLAnn * net = malloc(sizeof(CLAnn));
-	setupNetForXOR(net);
+	platform = CLSelectPlatform(platformIndex);
+	device = CLSelectDevice(platform, deviceIndex);
 
-	//OpenCL stuff
-	CLInt platformIndex = 0;
-	CLInt deviceIndex = 2;
-	CLPlatform platform = CLSelectPlatform(platformIndex);
-	CLDevice device = CLSelectDevice(platform, deviceIndex);
+	CLAnn * net = malloc(sizeof(CLAnn));
+
+	switch (0) {
+
+		case 0:
+			setupNetForXOR(net);
+			break;
+		case 1:
+			setupNetForPoly(net);
+			break;
+		case 2:
+			setupNetForIris(net);
+			break;
+		case 3:
+			setupNetForOrAnd(net);
+			break;
+
+		default:
+			break;
+	}
+
 
 	CLAnnSetupTrainingFor(net, platform, device, ACTIVATION_TANSIG);
-	CLAnnTraining(net, CLTrue);
+
+	CLAnnTraining(net);
 
 	CLAnnForward(net, CLTrue, CLFalse);
 	CLAnnPrintResults(net);
 
-	//CLMatrixSaveCSV(net->weights, "/Volumes/RamDisk/weights.csv");
+	printf("Would you like to save weights? [Y/N]\n");
+	char ans = 'N';
+	do {
+		ans = getchar();
+	} while (ans != 'N' && ans != 'Y' && ans != 'n' && ans != 'y');
+
+	if (ans == 'Y' || ans == 'y') CLMatrixSaveCSV(net->weights, "/Volumes/RamDisk/weights.csv");
 
 	CLAnnRelease(net);
 

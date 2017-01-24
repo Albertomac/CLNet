@@ -9,8 +9,6 @@
 #include "CLManager.h"
 
 #define BUFFER_SIZE (64 * 1024)
-#define CHECK_EXIT CLTrue
-#define CHECK_NOT_EXIT CLFalse
 
 #pragma mark Prints
 

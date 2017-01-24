@@ -74,10 +74,11 @@ void CLMatrixInitWithCSV(CLMatrix * matrix, CLStringConst file)
 	matrix->elements = matrix->rows * matrix->columns;
 	matrix->size = sizeof(CLFloat) * matrix->elements;
 
+	CLUInt index = 0;
 	while ((row = CsvParser_getRow(csvparser)) ) {
 		CLString * rowFields = CsvParser_getFields(row);
-		for (i = 0 ; i < CsvParser_getNumFields(row) ; i++) {
-			matrix->values[i] = atof(rowFields[i]);
+		for (i = 0 ; i < CsvParser_getNumFields(row) ; ++i, ++index) {
+			matrix->values[index] = atof(rowFields[i]);
 		}
 		CsvParser_destroy_row(row);
 	}
@@ -93,7 +94,7 @@ void CLMatrixSaveCSV(CLMatrix * matrix, CLStringConst file)
 		return;
 	}
 
-	fprintf(f, "%s;%d;%d;\n", matrix->name, matrix->rows, matrix->columns);
+	fprintf(f, "%s;%d;%d\n", matrix->name, matrix->rows, matrix->columns);
 
 	for (CLUInt i = 0; i < matrix->elements; ++i) {
 		fprintf(f, "%f;", matrix->values[i]);
@@ -121,6 +122,36 @@ void CLMatrixUpdateValues(CLMatrix * matrix, const CLFloat * newValues)
 	for (CLUInt i = 0; i < matrix->elements; ++i) {
 		matrix->values[i] = newValues[i];
 	}
+}
+
+void CLMatrixNormalize(CLMatrix * matrix)
+{
+	CLFloat min = matrix->values[0];
+	CLFloat max = matrix->values[0];
+
+	for (CLUInt i = 0; i < matrix->elements; ++i) {
+		CLFloat val = matrix->values[i];
+		if (val > max) {
+			max	= val;
+		}
+
+		if (val < min) {
+			min = val;
+		}
+	}
+
+	// y_norm = (y - y_min) / (y_max - y_min)
+	CLFloat denom = max - min;
+
+	for (CLUInt i = 0; i < matrix->elements; ++i) {
+		CLFloat val = matrix->values[i];
+		matrix->values[i] = (val - min) / denom;
+	}
+}
+
+void CLMatrixCreateMem(CLMatrix * matrix, CLContext context, CLMemFlags flags)
+{
+	matrix->mem = CLCreateBuffer(context, flags, matrix->size, matrix->name);
 }
 
 void CLMatrixCreateMemHostVar(CLMatrix * matrix, CLContext context, CLMemFlags flags)
@@ -179,7 +210,7 @@ void CLMatrixPrint(CLMatrix * matrix, CLMatrixTranspose transpose)
 	for (CLUInt r = 0; r < rows; ++r) {
 		for (CLUInt c = 0; c < cols; ++c) {
 			CLUInt index = (transpose == CLMatrixTrans) ? c * cols + r : r * cols + c;
-			printf("%8.5g ", matrix->values[index]);
+			printf("%0.2f ", matrix->values[index]);
 
 		}
 		printf("\n");
@@ -202,11 +233,12 @@ void CLMatrixReleaseMem(CLMatrix * matrix)
 
 void CLMatrixRelease(CLMatrix * matrix)
 {
-	CLMatrixReleaseMem(matrix);
+	CLReleaseMemObject(matrix->mem, matrix->name);
 	free(matrix->name);
 	matrix->name = NULL;
 	free(matrix->values);
 	matrix->values = NULL;
 	free(matrix);
+//TODO: Da verificare se è utile
 	matrix = NULL;
 }

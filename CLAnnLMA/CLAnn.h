@@ -29,6 +29,8 @@
 
  getting works clblas for cpu
 
+ Aggiungere la possibilità di stabilire la % di training set e la % di test
+
  new Name for the project
  */
 
@@ -45,6 +47,7 @@ typedef struct {
 	CLQueue queue;
 	CLProgram program;
 
+	CLKernel kernelClean;
 	CLKernel kernelActivation;
 	CLKernel kernelChiSquared;
 	CLKernel kernelChiSquaredReduce;
@@ -56,7 +59,8 @@ typedef struct {
 	CLString name;
 	CLUInt nPatterns;
 	CLUInt nInputs;
-	CLUInt nHiddens;
+	CLUInt nHiddenLayers;
+	CLUInt nNeuronsPerLayer;
 	CLUInt nTargets;
 
 	CLMatrix * inputs;
@@ -66,13 +70,15 @@ typedef struct {
 	CLMatrix * weightsTemp;
 	CLMatrix * outputs;
 
-	CLMatrix * hActivations;
+	CLMatrix ** hActivations;
 	CLMatrix * jacobian;
 	CLMatrix * hessian;
 
 	CLMatrix * delta;
 	CLMatrix * cholesky;
 	CLUInt ill;
+
+	CLFloat learningRate;
 
 	CLUInt verbose;
 	CLUInt maxIteration;
@@ -85,11 +91,10 @@ typedef struct {
 	
 } CLAnn;
 
-void CLAnnInit(CLAnn * nn, CLUInt nPatterns, CLUInt nInputs, CLUInt nHiddens, CLUInt nTargets, CLStringConst name);
+void CLAnnInit(CLAnn * nn, CLFloat learningRate, CLUInt nPatterns, CLUInt nInputs, CLUInt nHiddenLayers, CLUInt nNeuronsPerLayer, CLUInt nTargets, CLStringConst name);
 void CLAnnUpdateWithRandomWeights(CLAnn * nn);
 
 void CLAnnSetupTrainingFor(CLAnn * nn, CLPlatform platform, CLDevice device, int activationFunction);
-void CLAnnNormalizePatterns(CLAnn * nn);
 void CLAnnForward(CLAnn * nn, CLUInt updateWeightsFromHost, CLUInt printOutputs);
 CLFloat CLAnnChiSquared(CLAnn * nn);
 void CLAnnJacobian(CLAnn * nn);
@@ -97,7 +102,7 @@ void CLAnnHessian(CLAnn * nn);
 void CLAnnCholeskyDecomposition(CLAnn * nn, CLFloat mult);
 void CLAnnCholeskySolve(CLAnn * nn);
 
-CLUInt CLAnnTraining(CLAnn * nn, CLBool normalizePatterns);
+CLUInt CLAnnTraining(CLAnn * nn);
 
 void CLAnnPrintResults(CLAnn * nn);
 

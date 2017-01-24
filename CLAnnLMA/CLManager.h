@@ -9,6 +9,10 @@
 #ifndef CLManager_h
 #define CLManager_h
 
+
+#define CHECK_EXIT CLTrue
+#define CHECK_NOT_EXIT CLFalse
+
 #include "Common.h"
 
 #include <stdio.h>

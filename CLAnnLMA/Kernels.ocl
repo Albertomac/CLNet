@@ -1,10 +1,18 @@
 #define TRUE 1
 #define FALSE 0
-#define DEBUG FALSE
+#define DEBUG TRUE
 
 //#define activationFunction(e) e
 //#define activationFunction(e) (1.0f / (1.0f + exp(-e)))
 //#define activationFunction(e) (2.0f/(1.0f + exp(-2.0f * e))-1.0f)
+
+__kernel void clean(__global float * array, uint elements)
+{
+	const uint id = get_global_id(0);
+	if (id < elements) {
+		array[id] = 0.0f;
+	}
+}
 
 __kernel void activation(__global float * matrix, uint rows, uint columns)
 {
@@ -57,17 +65,20 @@ __kernel void chiSquaredReduce(__global float * partialSums, __local float * loc
 }
 
 //Jacobian
-__kernel void jacobian(__global float * jacobian, __global float * inputs, uint columnsG, uint rowsI, uint columnsI, uint offset, uint slope)
+__kernel void jacobian(__global float * jacobian, __global float * inputs, uint columnsG, uint rowsI, uint columnsI, uint offset, uint slope, uint yTimes)
 {
 	uint x = get_global_id(0);
 	uint y = get_global_id(1);
 
 	if (x < columnsI && y < rowsI) {
 
-		float value = inputs[y * columnsI + x];
+		for (uint t = 0; t < yTimes; ++t) {
 
-		for (uint i = 0; i < slope; ++i) {
-			jacobian[y * columnsG + x * slope + i + offset] = value;
+			float value = inputs[y * columnsI + x];
+
+			for (uint i = 0; i < slope; ++i) {
+				jacobian[(y + rowsI * t) * columnsG + x * slope + i + offset] = value;
+			}
 		}
 	}
 }
@@ -75,12 +86,6 @@ __kernel void jacobian(__global float * jacobian, __global float * inputs, uint 
 __kernel void delta(__global float * delta, __global float * y, __global float * f, __global float * jacobian, uint ny, uint npar)
 {
 	uint x = get_global_id(0);
-
-#if DEBUG
-	if (x == 0) {
-		printf("ny = %d - npar = %d\n", ny, npar);
-	}
-#endif
 
 	if (x < npar) {
 		float sum = 0.0f;
@@ -98,7 +103,6 @@ __kernel void delta(__global float * delta, __global float * y, __global float *
 
 __kernel void choleskyDecomposition(__global float * l, __global float * a, uint npar, float alpha, __global uint * ill)
 {
-
 	uint y = get_global_id(0); //Cols
 	if (y >= npar) {
 		return;
@@ -134,13 +138,5 @@ __kernel void choleskyDecomposition(__global float * l, __global float * a, uint
 		}
 
 		barrier(CLK_GLOBAL_MEM_FENCE);
-	}
-}
-
-__kernel void updateWeights(__global float * weights, __global float * delta, uint nWeights)
-{
-	uint x = get_global_id(0);
-	if (x < nWeights) {
-		weights[x] += delta[x];
 	}
 }
