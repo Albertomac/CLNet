@@ -22,26 +22,37 @@
 
 CLUInt BLOCK_SIZE = 32;
 
-void CLAnnInit(CLAnn * nn, CLUInt nPatterns, CLUInt nInputs, CLUInt nHiddenLayers, CLUInt nNeuronsPerLayer, CLUInt nTargets, CLStringConst name)
+void CLAnnInit(CLAnn * nn, CLUInt nPatterns, CLUInt nInputs, CLUInt nHiddenLayers, CLUInt * neuronsPerLayer, CLUInt nTargets, CLStringConst name)
 {
 	nn->name = malloc(sizeof(CLChar) * 1024);
 	strcpy(nn->name, name);
 	nn->nPatterns = nPatterns;
 	nn->nInputs = nInputs;
 	nn->nHiddenLayers = nHiddenLayers;
-	nn->nNeuronsPerLayer = nNeuronsPerLayer;
+	nn->neuronsPerLayer = malloc(sizeof(CLUInt) * nn->nHiddenLayers);
+	memcpy(nn->neuronsPerLayer, neuronsPerLayer, sizeof(CLUInt) * nn->nHiddenLayers);
 	nn->nTargets = nTargets;
 
 	printf("/** %s **/\n"
 		   "nPatters: %d\n"
-		   "%d x (%d)^(%d) x %d\n"
-		   "/** %s **/\n", nn->name, nn->nPatterns, nn->nInputs, nn->nNeuronsPerLayer, nn->nHiddenLayers, nn->nTargets, nn->name);
+		   "%d ", nn->name, nn->nPatterns, nn->nInputs);
+
+	for (CLUInt i = 0; i < nn->nHiddenLayers; ++i) {
+		printf("x %d ", nn->neuronsPerLayer[i]);
+	}
+	printf("x %d\n/** %s **/\n", nn->nTargets, nn->name);
 
 	nn->inputs = malloc(sizeof(CLMatrix));
 	nn->targets = malloc(sizeof(CLMatrix));
 
 	nn->weights = malloc(sizeof(CLMatrix));
 	nn->weightsTemp = malloc(sizeof(CLMatrix));
+
+	nn->weightsForLayer = malloc(sizeof(CLMatrix) * nn->nHiddenLayers + 1);
+	for (CLUInt i = 0; i < nn->nHiddenLayers + 1; ++i) {
+		nn->weightsForLayer[i] = malloc(sizeof(CLMatrix));
+	}
+
 	nn->outputs = malloc(sizeof(CLMatrix));
 
 	nn->hActivations = malloc(sizeof(CLMatrix));
@@ -59,22 +70,43 @@ void CLAnnInit(CLAnn * nn, CLUInt nPatterns, CLUInt nInputs, CLUInt nHiddenLayer
 	nn->finalError = 0.0f;
 	nn->finalDeltaError = 0.0f;
 
-	CLUInt nWeights = nn->nInputs * nn->nNeuronsPerLayer + (nn->nHiddenLayers - 1) * nn->nNeuronsPerLayer * nn->nNeuronsPerLayer + nn->nNeuronsPerLayer * nn->nTargets;
+	CLUInt nWeights = nn->nInputs * nn->neuronsPerLayer[0];
+
+	for (CLUInt i = 1; i < nn->nHiddenLayers; ++i) {
+		nWeights += nn->neuronsPerLayer[i - 1] * nn->neuronsPerLayer[i];
+	}
+	nWeights += nn->neuronsPerLayer[nn->nHiddenLayers - 1] * nn->nTargets;
 
 	CLMatrixInit(nn->inputs, nn->nPatterns, nn->nInputs, "inputs");
 	CLMatrixInit(nn->targets, nn->nPatterns, nn->nTargets, "targets");
 
 	CLMatrixInit(nn->weights, 1, nWeights, "weights");
 	CLMatrixInit(nn->weightsTemp, 1, nWeights, "weightsTemp");
+
+	CLString weightsName = malloc(sizeof(CLChar) * 32);
+
+	//Inputs x layer[0]
+	snprintf(weightsName, 31, "weightsForLayer[%d]", 0);
+	CLMatrixInit(nn->weightsForLayer[0], nn->inputs->columns, nn->neuronsPerLayer[0], weightsName);
+
+	//layer[i-1] x layer[i]
+	for (CLUInt i = 1; i < nn->nHiddenLayers; ++i) {
+		snprintf(weightsName, 31, "weightsForLayer[%d]", i);
+		CLMatrixInit(nn->weightsForLayer[i], nn->neuronsPerLayer[i - 1], nn->neuronsPerLayer[i], weightsName);
+	}
+
+	snprintf(weightsName, 31, "weightsForLayer[%d]", nn->nHiddenLayers);
+	CLMatrixInit(nn->weightsForLayer[nn->nHiddenLayers], nn->neuronsPerLayer[nn->nHiddenLayers - 1], nn->targets->columns, weightsName);
+
 	CLMatrixInit(nn->outputs, nn->nPatterns, nn->nTargets, "outputs");
 
 	nn->hActivations = malloc(sizeof(CLMatrix) * nn->nHiddenLayers);
 
-	CLString layerName = malloc(sizeof(CLChar) * 32);
+	CLString hActivationName = malloc(sizeof(CLChar) * 32);
 	for (CLUInt i = 0; i < nn->nHiddenLayers; ++i) {
-		snprintf(layerName, 31, "hActivation[%d]", i);
+		snprintf(hActivationName, 31, "hActivation[%d]", i);
 		nn->hActivations[i] = malloc(sizeof(CLMatrix));
-		CLMatrixInit(nn->hActivations[i], nn->nPatterns, nn->nNeuronsPerLayer, layerName);
+		CLMatrixInit(nn->hActivations[i], nn->nPatterns, nn->neuronsPerLayer[i], hActivationName);
 	}
 
 	CLMatrixInit(nn->jacobian, nn->nPatterns * nn->nTargets, nWeights, "jacobian");
@@ -85,7 +117,11 @@ void CLAnnInit(CLAnn * nn, CLUInt nPatterns, CLUInt nInputs, CLUInt nHiddenLayer
 	CLMatrixPrintStats(nn->inputs);
 	CLMatrixPrintStats(nn->targets);
 	CLMatrixPrintStats(nn->weights);
-	CLMatrixPrintStats(nn->weightsTemp);
+
+	for (CLUInt i = 0; i < nn->nHiddenLayers + 1; ++i) {
+		CLMatrixPrintStats(nn->weightsForLayer[i]);
+	}
+
 	CLMatrixPrintStats(nn->outputs);
 
 	for (CLUInt i = 0; i < nn->nHiddenLayers; ++i) {
@@ -99,8 +135,8 @@ void CLAnnInit(CLAnn * nn, CLUInt nPatterns, CLUInt nInputs, CLUInt nHiddenLayer
 
 
 	//TODO: Controllare se è giusta
-	CLSize totalSize = nn->inputs->size + nn->targets->size + nn->weights->size + nn->weightsTemp->size + nn->outputs->size + nn->jacobian->size + nn->hessian->size + nn->delta->size + nn->cholesky->size;
-	printf("Memory usage (aprox) : %0.2f MB\n", (float)totalSize / 1e6);
+//	CLSize totalSize = nn->inputs->size + nn->targets->size + nn->weights->size + nn->weightsTemp->size + nn->outputs->size + nn->jacobian->size + nn->hessian->size + nn->delta->size + nn->cholesky->size;
+//	printf("Memory usage (aprox) : %0.2f MB\n", (float)totalSize / 1e6);
 }
 
 void CLAnnUpdateWithRandomWeights(CLAnn * nn)
@@ -136,7 +172,6 @@ void CLAnnSetupTrainingFor(CLAnn * nn, CLPlatform platform, CLDevice device, int
 	nn->device = device;
 	nn->context = CLCreateContext(platform, device);
 	nn->queue = CLCreateQueue(nn->context, nn->device);
-//	nn->program = CLCreateProgram(nn->context, nn->device, "Kernels.ocl");
 
 	switch (activationFunction) {
 		case ACTIVATION_LINEAR:
@@ -152,6 +187,9 @@ void CLAnnSetupTrainingFor(CLAnn * nn, CLPlatform platform, CLDevice device, int
 			nn->program = CLCreateProgramWithMacro(nn->context, nn->device, "Kernels.ocl", "#define activationFunction(e) (2.0f/(1.0f + exp(-2.0f * e))-1.0f)");
 			break;
 
+		case ACTIVATION_RADBAS:
+			nn->program = CLCreateProgramWithMacro(nn->context, nn->device, "Kernels.ocl", "#define activationFunction(e) (exp(-(e * e)))");
+			break;
 		default:
 			break;
 	}
@@ -168,8 +206,19 @@ void CLAnnSetupTrainingFor(CLAnn * nn, CLPlatform platform, CLDevice device, int
 
 	CLMatrixCreateMemHostVar(nn->inputs, nn->context, CL_MEM_READ_ONLY);
 	CLMatrixCreateMemHostVar(nn->targets, nn->context, CL_MEM_READ_ONLY);
-	CLMatrixCreateMemHostVar(nn->weights, nn->context, CL_MEM_READ_ONLY);
-//	CLMatrixCreateMemHostVar(nn->weightsTemp, nn->context, CL_MEM_READ_ONLY);
+	CLMatrixCreateMemHostVar(nn->weights, nn->context, CL_MEM_READ_WRITE);
+	CLMatrixUpdateValues(nn->weightsTemp, nn->weights->values);
+	CLMatrixCreateMemHostVar(nn->weightsTemp, nn->context, CL_MEM_READ_WRITE);
+
+	//TODO: metterlo nell'init
+	CLSize offset = 0;
+	for (CLUInt i = 0; i < nn->nHiddenLayers + 1; ++i) {
+//		nn->weightsForLayer[i]->mem = CLCreateSubBuffer(nn->weights->mem, CL_MEM_READ_ONLY, offset , nn->weightsForLayer[i]->size, nn->weightsForLayer[i]->name);
+		nn->weightsForLayer[i]->offsetMem = offset;
+		offset += nn->weightsForLayer[i]->elements;
+		nn->weightsForLayer[i]->mem = nn->weights->mem;
+	}
+
 	CLMatrixCreateMem(nn->outputs, nn->context, CL_MEM_READ_ONLY);
 
 	for (CLUInt i = 0; i < nn->nHiddenLayers; ++i) {
@@ -195,7 +244,6 @@ void CLAnnSetupTrainingFor(CLAnn * nn, CLPlatform platform, CLDevice device, int
 			break;
 	}
 }
-
 
 void CLAnnCleanMatrix(CLAnn * nn, CLMatrix * matrix)
 {
@@ -224,8 +272,8 @@ void CLAnnMatrixMultiply(CLAnn * nn, CLMatrix * matrixA, CLMatrix * matrixB, CLM
 
 	CLEvent event;
 	clblasStatus status = clblasSgemm(clblasRowMajor, clblasNoTrans, clblasNoTrans, m, n, k, alphaBeta,
-									  matrixA->mem, 0, k,
-									  matrixB->mem, 0, n, alphaBeta,
+									  matrixA->mem, matrixA->offsetMem, k,
+									  matrixB->mem, matrixB->offsetMem, n, alphaBeta,
 									  matrixResult->mem, 0, n, 1,
 									  &nn->queue, 0, NULL, &event);
 
@@ -254,48 +302,34 @@ void CLAnnActivation(CLAnn * nn, CLMatrix * matrix, CLStringConst nameEvent)
 void CLAnnForward(CLAnn * nn, CLUInt updateWeightsFromHost, CLUInt printOutputs)
 {
 	if (updateWeightsFromHost == CLTrue) {
-		CLMatrixReleaseMem(nn->weights);
-		CLMatrixCreateMemHostVar(nn->weights, nn->context, CL_MEM_READ_WRITE);
+
+//		CLEvent eventFillBuffer;
+//		clblasStatus status = clEnqueueWriteBuffer(nn->queue, nn->weights->mem, CLTrue, 0, nn->weights->size, nn->weights->values, 0, NULL, &eventFillBuffer);
+//		CLErrorCheck(status, "clEnqueueFillBuffer", "PORCO_DIO", CHECK_EXIT);
+//		CLWaitForEvent(&eventFillBuffer, "eventFillBuffer");
+
+		CLEvent eventCopyBuffer;
+		clblasStatus status = clEnqueueCopyBuffer(nn->queue, nn->weightsTemp->mem, nn->weights->mem, 0, 0, nn->weightsTemp->size, 0, NULL, &eventCopyBuffer);
+		CLErrorCheck(status, "clEnququeCopyBuffer", "weightsTemp -> weights", CHECK_EXIT);
+		CLWaitForEvent(&eventCopyBuffer, "eventCopyBuffer");
 	}
 
-	CLMatrix * hWeights = malloc(sizeof(CLMatrix));
-	CLMatrixInit(hWeights, nn->nInputs, nn->nNeuronsPerLayer, "hWeights");
-	hWeights->mem = CLCreateSubBuffer(nn->weights->mem, CL_MEM_READ_ONLY, 0, hWeights->size, hWeights->name);
-
-	CLAnnMatrixMultiply(nn, nn->inputs, hWeights, nn->hActivations[0], "inputsXhWeights[0]");
+	CLAnnMatrixMultiply(nn, nn->inputs, nn->weightsForLayer[0], nn->hActivations[0], "inputsXhWeights[0]");
 	CLAnnActivation(nn, nn->hActivations[0], nn->hActivations[0]->name);
 
 	//MULTILAYER
-
-	CLSize offset = hWeights->size;
-	hWeights->rows = nn->nNeuronsPerLayer;
-	hWeights->columns = nn->nNeuronsPerLayer;
-	hWeights->elements = hWeights->rows * hWeights->columns;
-	hWeights->size = sizeof(CLFloat) * hWeights->elements;
-
 	for (CLUInt i = 1; i < nn->nHiddenLayers; ++i) {
 
-		snprintf(hWeights->name, 32, "hWeights[%d]", i);
-		hWeights->mem = CLCreateSubBuffer(nn->weights->mem, CL_MEM_READ_ONLY, offset, hWeights->size, hWeights->name);
-
-		CLAnnMatrixMultiply(nn, nn->hActivations[i-1], hWeights, nn->hActivations[i], nn->hActivations[i]->name);
+		CLAnnMatrixMultiply(nn, nn->hActivations[i-1], nn->weightsForLayer[i], nn->hActivations[i], nn->hActivations[i]->name);
 		CLAnnActivation(nn, nn->hActivations[i], nn->hActivations[i]->name);
-		offset += hWeights->size;
 	}
 
 	//END MULTILAYER
-
-	//Outputs = hiddenActivations x outputsWeights
-	CLMatrix * oWeights = malloc(sizeof(CLMatrix));
-	CLMatrixInit(oWeights, nn->nNeuronsPerLayer, nn->nTargets, "oWeights");
-	oWeights->mem = CLCreateSubBuffer(nn->weights->mem, CL_MEM_READ_ONLY, offset, oWeights->size, oWeights->name);
-
-	CLAnnMatrixMultiply(nn, nn->hActivations[nn->nHiddenLayers - 1], oWeights, nn->outputs, nn->outputs->name);
-
+	CLAnnMatrixMultiply(nn, nn->hActivations[nn->nHiddenLayers - 1], nn->weightsForLayer[nn->nHiddenLayers], nn->outputs, nn->outputs->name);
 
 #if DEBUG_LOG
 	CLMatrixPrint(nn->inputs, CLMatrixNoTrans);
-//	CLMatrixPrint(nn->weights, CLMatrixNoTrans);
+	CLMatrixPrint(nn->weights, CLMatrixNoTrans);
 
 	for (CLUInt i = 0; i < nn->nHiddenLayers; ++i) {
 		CLMatrixUpdateValuesFromMem(nn->hActivations[i], nn->queue);
@@ -312,9 +346,10 @@ void CLAnnForward(CLAnn * nn, CLUInt updateWeightsFromHost, CLUInt printOutputs)
 		CLAnnPrintResults(nn);
 	}
 
-	//Releases
-	CLMatrixRelease(hWeights);
-	CLMatrixRelease(oWeights);
+//	CLMatrixUpdateValuesFromMem(nn->weights, nn->queue);
+//	CLMatrixPrint(nn->weights, CLMatrixNoTrans);
+//	CLMatrixUpdateValuesFromMem(nn->weightsForLayer[0], nn->queue);
+//	CLMatrixPrint(nn->weightsForLayer[0], CLMatrixNoTrans);
 }
 
 CLFloat CLAnnChiSquared(CLAnn * nn)
@@ -389,7 +424,7 @@ void CLAnnJacobian(CLAnn * nn)
 	CLAnnCleanMatrix(nn, nn->jacobian);
 
 	CLUInt offset = 0;
-	CLUInt slope = nn->nNeuronsPerLayer;
+	CLUInt slope = nn->neuronsPerLayer[0];
 	CLUInt yTimes = nn->nTargets;
 
 	CLUInt nArg = 0;
@@ -419,10 +454,12 @@ void CLAnnJacobian(CLAnn * nn)
 	CLBenchmarkLog(eventJacobian, eventJacobian, loads, stores, elements, dataSize, operations, "jacobian");
 #endif
 
-	offset = nn->nInputs * nn->nNeuronsPerLayer;
-	slope = (nn->nHiddenLayers == 1) ? 1 : (nn->nHiddenLayers - 1) * nn->nNeuronsPerLayer;
+	offset = nn->nInputs * slope;
 
 	for (CLUInt i = 0; i < nn->nHiddenLayers; ++i) {
+
+		slope = (i == nn->nHiddenLayers - 1 ? nn->nTargets : nn->neuronsPerLayer[i + 1]);
+
 		CLEvent eventJacobianX;
 		nArg = 0;
 		CLSetKernelArg(nn->kernelJacobian, nArg++, sizeof(nn->jacobian->mem), &nn->jacobian->mem, nn->jacobian->name);
@@ -439,7 +476,7 @@ void CLAnnJacobian(CLAnn * nn)
 
 		CLEnqueueNDRangeKernel(nn->queue, nn->kernelJacobian, workDim, NULL, gws, lws, 0, NULL, &eventJacobianX, "jacobianX");
 		CLWaitForEvent(&eventJacobianX, "eventJacobianX");
-		offset += nn->nNeuronsPerLayer * slope;
+		offset += nn->neuronsPerLayer[i] * slope;
 	}
 #if BENCHMARK
 	loads = nn->hActivations->elements;
@@ -696,10 +733,18 @@ void CLAnnUpdateWeights(CLAnn * nn)
 		return;
 	}
 
-	CLMatrixReleaseMem(nn->weights);
-	CLMatrixCreateMemHostVar(nn->weights, nn->context, CL_MEM_READ_WRITE);
+	//TODO: CONTROLLARE SE SERVE
+//	CLEvent eventFillBuffer;
+//	clblasStatus status = clEnqueueWriteBuffer(nn->queue, nn->weights->mem, CLTrue, 0, nn->weights->size, nn->weights->values, 0, NULL, &eventFillBuffer);
+//	CLErrorCheck(status, "clEnqueueFillBuffer", "PORCO_DIO", CHECK_EXIT);
+//	CLWaitForEvent(&eventFillBuffer, "eventFillBuffer");
 
-	clblasStatus status;
+	CLEvent eventCopyBuffer;
+	clblasStatus status = clEnqueueCopyBuffer(nn->queue, nn->weightsTemp->mem, nn->weights->mem, 0, 0, nn->weightsTemp->size, 0, NULL, &eventCopyBuffer);
+	CLErrorCheck(status, "clEnququeCopyBuffer", "weightsTemp -> weights", CHECK_EXIT);
+	CLWaitForEvent(&eventCopyBuffer, "eventCopyBuffer");
+
+//	clblasStatus status;
 	CLEvent eventUpdateWeights;
 	status = clblasSaxpy(nn->weights->elements, 1, nn->delta->mem, 0, 1, nn->weights->mem, 0, 1, 1, &nn->queue, 0, NULL, &eventUpdateWeights);
 	if (status != CL_SUCCESS) {
@@ -738,7 +783,11 @@ void CLAnnUpdateWeights(CLAnn * nn)
 //}
 
 void CLAnnUpdateLocalWeights(CLAnn * nn) {
-	CLMatrixUpdateValuesFromMem(nn->weights, nn->queue);
+//	CLMatrixUpdateValuesFromMem(nn->weights, nn->queue);
+	CLEvent eventCopyBuffer;
+	clblasStatus status = clEnqueueCopyBuffer(nn->queue, nn->weights->mem, nn->weightsTemp->mem, 0, 0, nn->weightsTemp->size, 0, NULL, &eventCopyBuffer);
+	CLErrorCheck(status, "clEnququeCopyBuffer", "weightsTemp -> weights", CHECK_EXIT);
+	CLWaitForEvent(&eventCopyBuffer, "eventCopyBuffer");
 }
 
 CLUInt CLAnnTraining(CLAnn * nn) {
@@ -750,6 +799,13 @@ CLUInt CLAnnTraining(CLAnn * nn) {
 	CLFloat error = -1.0f;
 	CLFloat newError = -1.0f;
 	CLFloat deltaError = -1.0f;
+
+
+
+//	CLMatrixUpdateValues(nn->weightsTemp, nn->weights->values);
+//
+//	CLMatrixCreateMemHostVar(nn->weights, nn->context, CL_MEM_READ_WRITE);
+//	CLMatrixCreateMemHostVar(nn->weightsTemp, nn->context, CL_MEM_READ_WRITE);
 
 	CLAnnForward(nn, CLTrue, CLFalse);					//Forward per calcolare l'errore iniziale
 	error = CLAnnChiSquared(nn);						//Calcolo dell'errore iniziale
@@ -782,6 +838,10 @@ CLUInt CLAnnTraining(CLAnn * nn) {
 
 			if (nn->verbose == CLTrue) printf("it = %4d,   lambda = %10g,   err = %10g,   derr = %10g\n", it, lambda, error, deltaError);
 
+			if (isnan(newError) || lambda > 1e30){
+				return (it == nn->maxIteration);
+			}
+			
 			if (ill) {									//Se ill è ancora 1, vengono aggiornati i moltiplicatori
 				mult = (1 + lambda * nn->upFactor)/(1 + lambda);
 				lambda *= nn->upFactor;
@@ -803,11 +863,13 @@ CLUInt CLAnnTraining(CLAnn * nn) {
 	return (it == nn->maxIteration);
 }
 
-
 void CLAnnPrintResults(CLAnn * nn)
 {
 	CLMatrixUpdateValuesFromMem(nn->outputs, nn->queue);
 
+	for (CLUInt i = 0; i < nn->nInputs; ++i) {
+		printf(" inputs[%2d] |", i);
+	}
 	for (CLUInt i = 0; i < nn->nTargets; ++i) {
 		printf(" Target[%2d] |", i);
 	}
@@ -815,13 +877,17 @@ void CLAnnPrintResults(CLAnn * nn)
 		printf(" Output[%2d] |", i);
 	}
 	for (CLUInt i = 0; i < nn->nTargets; ++i) {
-		printf(" Error%%[%2d] |", i);
+		printf("  Error%%[%2d]  |", i);
 	}
 	printf("\n");
 
 	CLFloat * errorPerc = malloc(sizeof(CLFloat) * nn->nTargets);
 
 	for (CLUInt p = 0; p < nn->nPatterns; ++p) {
+
+		for (CLUInt i = 0; i < nn->nInputs; ++i) {
+			printf("%12g|", nn->inputs->values[p * nn->nInputs + i]);
+		}
 
 		for (CLUInt o = 0; o < nn->nTargets; ++o) {
 			errorPerc[o] = nn->targets->values[p * nn->nTargets + o];
@@ -835,7 +901,8 @@ void CLAnnPrintResults(CLAnn * nn)
 		}
 
 		for (CLUInt o = 0; o < nn->nTargets; ++o) {
-			printf("%12g|", fabs(errorPerc[o]) * 100);
+			CLFloat errorPercValue = fabs(errorPerc[o]) * 100;
+			printf( (errorPercValue > 30.0f ? "%12g♥️|" : "%12g💚|"), errorPercValue);
 		}
 		printf("\n");
 	}
@@ -850,10 +917,11 @@ void CLAnnRelease(CLAnn * nn)
 
 	for (CLUInt i = 0; i < nn->nHiddenLayers; ++i) {
 		CLMatrixRelease(nn->hActivations[i]);
+		CLMatrixRelease(nn->weightsForLayer[i]);
 	}
+
 	CLMatrixRelease(nn->outputs);
 	CLMatrixRelease(nn->weights);
-//	CLMatrixRelease(nn->weightsTemp);
 	CLMatrixRelease(nn->targets);
 	CLMatrixRelease(nn->inputs);
 
@@ -864,6 +932,7 @@ void CLAnnRelease(CLAnn * nn)
 	nn->hActivations = NULL;
 	nn->outputs = NULL;
 	nn->weights = NULL;
+	nn->weightsForLayer = NULL;
 	nn->targets = NULL;
 	nn->inputs = NULL;
 

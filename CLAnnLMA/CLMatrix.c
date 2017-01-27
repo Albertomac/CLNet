@@ -30,6 +30,7 @@ void CLMatrixInit(CLMatrix * matrix, CLUInt rows, CLUInt columns, CLStringConst 
 void CLMatrixInitWithCLMem(CLMatrix * matrix, CLMem mem, CLUInt rows, CLUInt columns, CLStringConst name)
 {
 	CLMatrixInit(matrix, rows, columns, name);
+	matrix->offsetMem = 0;
 	matrix->mem = mem;
 }
 
@@ -46,6 +47,8 @@ void CLMatrixInitWithValues(CLMatrix * matrix, CLFloat * values, CLUInt rows, CL
 		matrix->size = sizeof(CLFloat) * matrix->elements;
 
 		matrix->values = values;
+
+		matrix->offsetMem = 0;
 	}
 }
 
@@ -73,6 +76,7 @@ void CLMatrixInitWithCSV(CLMatrix * matrix, CLStringConst file)
 	matrix->columns = atoi(headerFields[2]);
 	matrix->elements = matrix->rows * matrix->columns;
 	matrix->size = sizeof(CLFloat) * matrix->elements;
+	matrix->offsetMem = 0;
 
 	CLUInt index = 0;
 	while ((row = CsvParser_getRow(csvparser)) ) {

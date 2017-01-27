@@ -37,6 +37,7 @@
 #define ACTIVATION_LINEAR  0
 #define ACTIVATION_SIGMOID 1 //Logistic
 #define ACTIVATION_TANSIG  2
+#define ACTIVATION_RADBAS  3
 
 typedef struct {
 
@@ -60,7 +61,7 @@ typedef struct {
 	CLUInt nPatterns;
 	CLUInt nInputs;
 	CLUInt nHiddenLayers;
-	CLUInt nNeuronsPerLayer;
+	CLUInt * neuronsPerLayer;
 	CLUInt nTargets;
 
 	CLMatrix * inputs;
@@ -68,6 +69,7 @@ typedef struct {
 
 	CLMatrix * weights;
 	CLMatrix * weightsTemp;
+	CLMatrix ** weightsForLayer;
 	CLMatrix * outputs;
 
 	CLMatrix ** hActivations;
@@ -88,10 +90,13 @@ typedef struct {
 	CLFloat targetDeltaError;
 	CLFloat finalError;
 	CLFloat finalDeltaError;
+
+	CLMatrix ** layers;
+	CLMatrix ** weightsLayers;
 	
 } CLAnn;
 
-void CLAnnInit(CLAnn * nn, CLUInt nPatterns, CLUInt nInputs, CLUInt nHiddenLayers, CLUInt nNeuronsPerLayer, CLUInt nTargets, CLStringConst name);
+void CLAnnInit(CLAnn * nn, CLUInt nPatterns, CLUInt nInputs, CLUInt nHiddenLayers, CLUInt * neuronsPerLayer, CLUInt nTargets, CLStringConst name);
 void CLAnnUpdateWithRandomWeights(CLAnn * nn);
 void CLAnnShufflePatterns(CLAnn * nn);
 

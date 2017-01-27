@@ -20,6 +20,7 @@ typedef enum _CLMatrixTranspose {
 typedef struct {
 
 	CLString name;
+	CLSize offsetMem;
 	CLMem mem;
 	CLUInt rows;
 	CLUInt columns;

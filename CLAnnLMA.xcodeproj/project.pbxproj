@@ -16,6 +16,7 @@
 		F3C018ED1DCE423400062459 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = F3C018EC1DCE423400062459 /* main.c */; };
 		F3C018F61DCE427900062459 /* CLManager.c in Sources */ = {isa = PBXBuildFile; fileRef = F3C018F31DCE427900062459 /* CLManager.c */; };
 		F3C018F91DCE45F200062459 /* CLMatrix.c in Sources */ = {isa = PBXBuildFile; fileRef = F3C018F71DCE45F200062459 /* CLMatrix.c */; };
+		F3D44FCF1E3A366E00FD6DC9 /* CLNet.c in Sources */ = {isa = PBXBuildFile; fileRef = F3D44FCD1E3A366E00FD6DC9 /* CLNet.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -40,7 +41,6 @@
 		F33124F01DCF71600009950C /* Kernels.ocl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Kernels.ocl; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.opencl; };
 		F3413CEC1DD1F1D7006BC6BB /* CLRandom.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CLRandom.c; sourceTree = "<group>"; };
 		F3413CED1DD1F1D7006BC6BB /* CLRandom.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CLRandom.h; sourceTree = "<group>"; };
-		F3413CEF1DD20C77006BC6BB /* SimpleClassDataset.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SimpleClassDataset.h; sourceTree = "<group>"; };
 		F3B7EF0A1DD330CF0046EC7C /* CLBenchmark.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CLBenchmark.c; sourceTree = "<group>"; };
 		F3B7EF0B1DD330CF0046EC7C /* CLBenchmark.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CLBenchmark.h; sourceTree = "<group>"; };
 		F3C018E91DCE423400062459 /* CLAnnLMA */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = CLAnnLMA; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -51,6 +51,8 @@
 		F3C018F71DCE45F200062459 /* CLMatrix.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CLMatrix.c; sourceTree = "<group>"; };
 		F3C018F81DCE45F200062459 /* CLMatrix.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CLMatrix.h; sourceTree = "<group>"; };
 		F3C1B4491DD2956C008E59D9 /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
+		F3D44FCD1E3A366E00FD6DC9 /* CLNet.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CLNet.c; sourceTree = "<group>"; };
+		F3D44FCE1E3A366E00FD6DC9 /* CLNet.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CLNet.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -96,12 +98,13 @@
 				F33124F01DCF71600009950C /* Kernels.ocl */,
 				F3413CED1DD1F1D7006BC6BB /* CLRandom.h */,
 				F3413CEC1DD1F1D7006BC6BB /* CLRandom.c */,
-				F3413CEF1DD20C77006BC6BB /* SimpleClassDataset.h */,
 				F3C1B4491DD2956C008E59D9 /* Makefile */,
 				F3B7EF0B1DD330CF0046EC7C /* CLBenchmark.h */,
 				F3B7EF0A1DD330CF0046EC7C /* CLBenchmark.c */,
 				F32338151E12C6F3007E915D /* csvparser.h */,
 				F32338141E12C6F3007E915D /* csvparser.c */,
+				F3D44FCE1E3A366E00FD6DC9 /* CLNet.h */,
+				F3D44FCD1E3A366E00FD6DC9 /* CLNet.c */,
 			);
 			path = CLAnnLMA;
 			sourceTree = "<group>";
@@ -168,6 +171,7 @@
 				F3413CEE1DD1F1D7006BC6BB /* CLRandom.c in Sources */,
 				F3C018ED1DCE423400062459 /* main.c in Sources */,
 				F3C018F91DCE45F200062459 /* CLMatrix.c in Sources */,
+				F3D44FCF1E3A366E00FD6DC9 /* CLNet.c in Sources */,
 				F32338161E12C6F3007E915D /* csvparser.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
