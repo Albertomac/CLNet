@@ -156,7 +156,7 @@ void CLMatrixNormalize(CLMatrix * matrix)
 	for (CLUInt i = 1 ; i < matrix->elements; ++i) {
 		CLFloat val = matrix->values[i];
 		if (fabs(val) > max) {
-			max = val;
+			max = fabs(val);
 		}
 	}
 

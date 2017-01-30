@@ -13,11 +13,20 @@
 #include "CLManager.h"
 #include "CLMatrix.h"
 
+
+#define DEBUG_TOTAL CLFalse
+
+#define DEBUG_FORWARD					DEBUG_TOTAL && CLFalse
+#define DEBUG_CHI_SQUARED				DEBUG_TOTAL && CLFalse
+#define DEBUG_JACOBIAN					DEBUG_TOTAL && CLTrue
+#define DEBUG_HESSIAN					DEBUG_TOTAL && CLTrue
+#define DEBUG_DELTA						DEBUG_TOTAL && CLTrue
+#define DEBUG_CHOLESKY_DECOMPOSITION	DEBUG_TOTAL && CLTrue
+#define DEBUG_CHOLESKY_SOLVE			DEBUG_TOTAL && CLTrue
+#define DEBUG_UPDATE_WEIGHTS			DEBUG_TOTAL && CLTrue
+
 /*
  TODO:
- use weightsTemps and copy weights when needed with clEnqueueCopyBuffers
- normalization of inputs using clblasSnrm2
- hidden multi layers
  
  benchmarks file with useful runs
  improve opencl kernels
@@ -34,10 +43,12 @@
  new Name for the project
  */
 
-#define ACTIVATION_LINEAR  0
-#define ACTIVATION_SIGMOID 1 //Logistic
-#define ACTIVATION_TANSIG  2
-#define ACTIVATION_RADBAS  3
+typedef enum CLActivation_ {
+	CLActivationSigmoid = 0,
+	CLActivationTansig,
+	CLActivationRadbas,
+	CLActivationLinear = 100
+} CLActivation;
 
 typedef struct {
 
@@ -49,7 +60,9 @@ typedef struct {
 	CLProgram program;
 
 	CLKernel kernelClean;
-	CLKernel kernelActivation;
+
+	CLKernel * kernelActivation;
+
 	CLKernel kernelChiSquared;
 	CLKernel kernelChiSquaredReduce;
 	CLKernel kernelJacobian;
@@ -61,6 +74,7 @@ typedef struct {
 	CLUInt nPatterns;
 	CLUInt nInputs;
 	CLUInt nHiddenLayers;
+	CLActivation * activationPerLayer;
 	CLUInt * neuronsPerLayer;
 	CLUInt nTargets;
 
@@ -72,13 +86,17 @@ typedef struct {
 	CLMatrix ** weightsForLayer;
 	CLMatrix * outputs;
 
+
+	CLMem chiSquaredError;
 	CLMatrix ** hActivations;
 	CLMatrix * jacobian;
 	CLMatrix * hessian;
 
+	CLMatrix * d;
 	CLMatrix * delta;
 	CLMatrix * cholesky;
-	CLUInt ill;
+	CLMem illMem;
+	CLBool ill;
 
 	CLFloat learningRate;
 
@@ -91,25 +109,18 @@ typedef struct {
 	CLFloat finalError;
 	CLFloat finalDeltaError;
 
-	CLMatrix ** layers;
-	CLMatrix ** weightsLayers;
-	
+	CLBool inputsCopiedIntoJacobian;
 } CLAnn;
 
-void CLAnnInit(CLAnn * nn, CLUInt nPatterns, CLUInt nInputs, CLUInt nHiddenLayers, CLUInt * neuronsPerLayer, CLUInt nTargets, CLStringConst name);
+void CLAnnInit(CLAnn * nn, CLUInt nPatterns, CLUInt nInputs, CLUInt nHiddenLayers, CLActivation * activationPerLayer,  CLUInt * neuronsPerLayer, CLUInt nTargets, CLStringConst name);
 void CLAnnUpdateWithRandomWeights(CLAnn * nn);
 void CLAnnShufflePatterns(CLAnn * nn);
 
-void CLAnnSetupTrainingFor(CLAnn * nn, CLPlatform platform, CLDevice device, int activationFunction);
+void CLAnnSetupTrainingFor(CLAnn * nn, CLPlatform platform, CLDevice device);
 void CLAnnForward(CLAnn * nn, CLUInt updateWeightsFromHost, CLUInt printOutputs);
 CLFloat CLAnnChiSquared(CLAnn * nn);
-void CLAnnJacobian(CLAnn * nn);
-void CLAnnHessian(CLAnn * nn);
-void CLAnnCholeskyDecomposition(CLAnn * nn, CLFloat mult);
-void CLAnnCholeskySolve(CLAnn * nn);
 
 CLUInt CLAnnTraining(CLAnn * nn);
-
 void CLAnnPrintResults(CLAnn * nn);
 
 void CLAnnRelease(CLAnn * nn);

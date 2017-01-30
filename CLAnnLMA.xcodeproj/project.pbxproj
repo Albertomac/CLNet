@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		F31C55021DD24442007AA183 /* libclBLAS.2.6.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F31C55011DD24442007AA183 /* libclBLAS.2.6.0.dylib */; };
+		F315E9321E3F7AD700F63D36 /* libclBLAS.2.11.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F315E9311E3F7AD700F63D36 /* libclBLAS.2.11.0.dylib */; };
 		F32338161E12C6F3007E915D /* csvparser.c in Sources */ = {isa = PBXBuildFile; fileRef = F32338141E12C6F3007E915D /* csvparser.c */; };
 		F33124ED1DCF35880009950C /* CLAnn.c in Sources */ = {isa = PBXBuildFile; fileRef = F33124EB1DCF35880009950C /* CLAnn.c */; };
 		F33124F11DCF762C0009950C /* Kernels.ocl in CopyFiles */ = {isa = PBXBuildFile; fileRef = F33124F01DCF71600009950C /* Kernels.ocl */; };
@@ -33,7 +33,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		F31C55011DD24442007AA183 /* libclBLAS.2.6.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libclBLAS.2.6.0.dylib; sourceTree = "<group>"; };
+		F315E9311E3F7AD700F63D36 /* libclBLAS.2.11.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libclBLAS.2.11.0.dylib; sourceTree = "<group>"; };
 		F32338141E12C6F3007E915D /* csvparser.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = csvparser.c; sourceTree = "<group>"; };
 		F32338151E12C6F3007E915D /* csvparser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = csvparser.h; sourceTree = "<group>"; };
 		F33124EB1DCF35880009950C /* CLAnn.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CLAnn.c; sourceTree = "<group>"; };
@@ -60,7 +60,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F31C55021DD24442007AA183 /* libclBLAS.2.6.0.dylib in Frameworks */,
+				F315E9321E3F7AD700F63D36 /* libclBLAS.2.11.0.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -94,7 +94,6 @@
 				F33124EB1DCF35880009950C /* CLAnn.c */,
 				F3C018F81DCE45F200062459 /* CLMatrix.h */,
 				F3C018F71DCE45F200062459 /* CLMatrix.c */,
-				F31C55011DD24442007AA183 /* libclBLAS.2.6.0.dylib */,
 				F33124F01DCF71600009950C /* Kernels.ocl */,
 				F3413CED1DD1F1D7006BC6BB /* CLRandom.h */,
 				F3413CEC1DD1F1D7006BC6BB /* CLRandom.c */,
@@ -105,6 +104,7 @@
 				F32338141E12C6F3007E915D /* csvparser.c */,
 				F3D44FCE1E3A366E00FD6DC9 /* CLNet.h */,
 				F3D44FCD1E3A366E00FD6DC9 /* CLNet.c */,
+				F315E9311E3F7AD700F63D36 /* libclBLAS.2.11.0.dylib */,
 			);
 			path = CLAnnLMA;
 			sourceTree = "<group>";
@@ -215,6 +215,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -252,6 +253,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = macosx;
@@ -261,6 +263,9 @@
 		F3C018F11DCE423400062459 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				FRAMEWORK_SEARCH_PATHS = "";
+				HEADER_SEARCH_PATHS = "";
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/CLAnnLMA",
@@ -272,6 +277,9 @@
 		F3C018F21DCE423400062459 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				FRAMEWORK_SEARCH_PATHS = "";
+				HEADER_SEARCH_PATHS = "";
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/CLAnnLMA",

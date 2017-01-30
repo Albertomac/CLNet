@@ -7,7 +7,6 @@
 //
 
 #include "CLRandom.h"
-#include <stdlib.h>
 
 void CLRandomSetup()
 {

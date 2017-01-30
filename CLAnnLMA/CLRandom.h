@@ -10,6 +10,7 @@
 #define CLRandom_h
 
 #include <stdio.h>
+#include <stdlib.h>
 
 void CLRandomSetup();
 

@@ -13,7 +13,11 @@
 #include "CLRandom.h"
 
 #define kClean "clean"
-#define kActivation "activation"
+
+#define kActivationSigmoid "activationSigmoid"
+#define kActivationTansig "activationTansig"
+#define kActivationRadbas "activationRadbas"
+
 #define kChiSquared "chiSquared"
 #define kChiSquaredReduce "chiSquaredReduce"
 #define kJacobian "jacobian"
@@ -22,13 +26,15 @@
 
 CLUInt BLOCK_SIZE = 32;
 
-void CLAnnInit(CLAnn * nn, CLUInt nPatterns, CLUInt nInputs, CLUInt nHiddenLayers, CLUInt * neuronsPerLayer, CLUInt nTargets, CLStringConst name)
+void CLAnnInit(CLAnn * nn, CLUInt nPatterns, CLUInt nInputs, CLUInt nHiddenLayers, CLActivation * activationPerLayer,  CLUInt * neuronsPerLayer, CLUInt nTargets, CLStringConst name)
 {
 	nn->name = malloc(sizeof(CLChar) * 1024);
 	strcpy(nn->name, name);
 	nn->nPatterns = nPatterns;
 	nn->nInputs = nInputs;
 	nn->nHiddenLayers = nHiddenLayers;
+	nn->activationPerLayer = malloc(sizeof(CLActivation) * nn->nHiddenLayers);
+	memcpy(nn->activationPerLayer, activationPerLayer, sizeof(CLActivation) * nn->nHiddenLayers);
 	nn->neuronsPerLayer = malloc(sizeof(CLUInt) * nn->nHiddenLayers);
 	memcpy(nn->neuronsPerLayer, neuronsPerLayer, sizeof(CLUInt) * nn->nHiddenLayers);
 	nn->nTargets = nTargets;
@@ -58,6 +64,7 @@ void CLAnnInit(CLAnn * nn, CLUInt nPatterns, CLUInt nInputs, CLUInt nHiddenLayer
 	nn->hActivations = malloc(sizeof(CLMatrix));
 	nn->jacobian = malloc(sizeof(CLMatrix));
 	nn->hessian = malloc(sizeof(CLMatrix));
+	nn->d = malloc(sizeof(CLMatrix));
 	nn->delta = malloc(sizeof(CLMatrix));
 	nn->cholesky = malloc(sizeof(CLMatrix));
 
@@ -69,6 +76,7 @@ void CLAnnInit(CLAnn * nn, CLUInt nPatterns, CLUInt nInputs, CLUInt nHiddenLayer
 	nn->targetDeltaError = 1e-12f;
 	nn->finalError = 0.0f;
 	nn->finalDeltaError = 0.0f;
+	nn->inputsCopiedIntoJacobian = CLFalse;
 
 	CLUInt nWeights = nn->nInputs * nn->neuronsPerLayer[0];
 
@@ -111,6 +119,7 @@ void CLAnnInit(CLAnn * nn, CLUInt nPatterns, CLUInt nInputs, CLUInt nHiddenLayer
 
 	CLMatrixInit(nn->jacobian, nn->nPatterns * nn->nTargets, nWeights, "jacobian");
 	CLMatrixInit(nn->hessian, nWeights, nWeights, "hessian");
+	CLMatrixInit(nn->d, 1, nWeights, "d");
 	CLMatrixInit(nn->delta, 1, nWeights, "delta");
 	CLMatrixInit(nn->cholesky, nWeights, nWeights, "cholesky");
 
@@ -130,6 +139,7 @@ void CLAnnInit(CLAnn * nn, CLUInt nPatterns, CLUInt nInputs, CLUInt nHiddenLayer
 
 	CLMatrixPrintStats(nn->jacobian);
 	CLMatrixPrintStats(nn->hessian);
+	CLMatrixPrintStats(nn->d);
 	CLMatrixPrintStats(nn->delta);
 	CLMatrixPrintStats(nn->cholesky);
 
@@ -166,36 +176,21 @@ void CLAnnShufflePatterns(CLAnn * nn)
 	}
 }
 
-void CLAnnSetupTrainingFor(CLAnn * nn, CLPlatform platform, CLDevice device, int activationFunction)
+void CLAnnSetupTrainingFor(CLAnn * nn, CLPlatform platform, CLDevice device)
 {
 	nn->platform = platform;
 	nn->device = device;
 	nn->context = CLCreateContext(platform, device);
 	nn->queue = CLCreateQueue(nn->context, nn->device);
 
-	switch (activationFunction) {
-		case ACTIVATION_LINEAR:
-			//#define activationFunction(e) e
-			nn->program = CLCreateProgramWithMacro(nn->context, nn->device, "Kernels.ocl", "#define activationFunction(e) e");
-			break;
-		case ACTIVATION_SIGMOID:
-			//#define activationFunction(e) (1.0f / (1.0f + exp(-e)))
-			nn->program = CLCreateProgramWithMacro(nn->context, nn->device, "Kernels.ocl", "#define activationFunction(e) (1.0f / (1.0f + exp(-e)))");
-			break;
-		case ACTIVATION_TANSIG:
-			//#define activationFunction(e) (2.0f/(1.0f + exp(-2.0f * e))-1.0f)
-			nn->program = CLCreateProgramWithMacro(nn->context, nn->device, "Kernels.ocl", "#define activationFunction(e) (2.0f/(1.0f + exp(-2.0f * e))-1.0f)");
-			break;
-
-		case ACTIVATION_RADBAS:
-			nn->program = CLCreateProgramWithMacro(nn->context, nn->device, "Kernels.ocl", "#define activationFunction(e) (exp(-(e * e)))");
-			break;
-		default:
-			break;
-	}
-
+	nn->program = CLCreateProgram(nn->context, nn->device, "Kernels.ocl");
 	nn->kernelClean = CLCreateKernel(nn->program, kClean);
-	nn->kernelActivation = CLCreateKernel(nn->program, kActivation);
+
+	nn->kernelActivation = malloc(sizeof(CLKernel) * 3);
+	nn->kernelActivation[CLActivationSigmoid] = CLCreateKernel(nn->program, kActivationSigmoid);
+	nn->kernelActivation[CLActivationTansig] = CLCreateKernel(nn->program, kActivationTansig);
+	nn->kernelActivation[CLActivationRadbas] = CLCreateKernel(nn->program, kActivationRadbas);
+
 	nn->kernelChiSquared = CLCreateKernel(nn->program, kChiSquared);
 	nn->kernelChiSquaredReduce = CLCreateKernel(nn->program, kChiSquaredReduce);
 	nn->kernelJacobian = CLCreateKernel(nn->program, kJacobian);
@@ -213,10 +208,10 @@ void CLAnnSetupTrainingFor(CLAnn * nn, CLPlatform platform, CLDevice device, int
 	//TODO: metterlo nell'init
 	CLSize offset = 0;
 	for (CLUInt i = 0; i < nn->nHiddenLayers + 1; ++i) {
-//		nn->weightsForLayer[i]->mem = CLCreateSubBuffer(nn->weights->mem, CL_MEM_READ_ONLY, offset , nn->weightsForLayer[i]->size, nn->weightsForLayer[i]->name);
 		nn->weightsForLayer[i]->offsetMem = offset;
 		offset += nn->weightsForLayer[i]->elements;
 		nn->weightsForLayer[i]->mem = nn->weights->mem;
+		clRetainMemObject(nn->weights->mem);
 	}
 
 	CLMatrixCreateMem(nn->outputs, nn->context, CL_MEM_READ_ONLY);
@@ -225,10 +220,19 @@ void CLAnnSetupTrainingFor(CLAnn * nn, CLPlatform platform, CLDevice device, int
 		CLMatrixCreateMem(nn->hActivations[i], nn->context, CL_MEM_READ_WRITE);
 	}
 
+	CLSize lws[] = {BLOCK_SIZE};
+	CLSize gws[] = {CLGetOptimalGlobalWorkItemsSize(nn->targets->elements, lws[0])};
+	CLSize nwg = divUpSize(gws[0], lws[0]);
+
+	//TODO: evitare di creare il mem ogni volta che chiamo questa funzione
+	nn->chiSquaredError = CLCreateBuffer(nn->context, CL_MEM_READ_WRITE, sizeof(CLFloat) * nwg, "chiSquaredError");
+
 	CLMatrixCreateMem(nn->jacobian, nn->context, CL_MEM_READ_WRITE);
 	CLMatrixCreateMem(nn->hessian, nn->context, CL_MEM_READ_WRITE);
+	CLMatrixCreateMem(nn->d, nn->context, CL_MEM_READ_WRITE);
 	CLMatrixCreateMem(nn->delta, nn->context, CL_MEM_READ_WRITE);
 	CLMatrixCreateMem(nn->cholesky, nn->context, CL_MEM_READ_WRITE);
+	nn->illMem = CLCreateBuffer(nn->context, CL_MEM_READ_WRITE, sizeof(CLUInt), "ill");
 
 	CLDeviceType deviceType = CLGetDeviceType(nn->device);
 
@@ -263,71 +267,68 @@ void CLAnnCleanMatrix(CLAnn * nn, CLMatrix * matrix)
 
 void CLAnnMatrixMultiply(CLAnn * nn, CLMatrix * matrixA, CLMatrix * matrixB, CLMatrix * matrixResult, CLStringConst nameEvent)
 {
-	CLAnnCleanMatrix(nn, matrixResult);
-
-	const CLFloat alphaBeta = 1.0f;
 	CLSize m = matrixA->rows;
 	CLSize n = matrixB->columns;
 	CLSize k = matrixA->columns;
 
 	CLEvent event;
-	clblasStatus status = clblasSgemm(clblasRowMajor, clblasNoTrans, clblasNoTrans, m, n, k, alphaBeta,
+	clblasStatus status = clblasSgemm(clblasRowMajor, clblasNoTrans, clblasNoTrans, m, n, k, 1,
 									  matrixA->mem, matrixA->offsetMem, k,
-									  matrixB->mem, matrixB->offsetMem, n, alphaBeta,
-									  matrixResult->mem, 0, n, 1,
-									  &nn->queue, 0, NULL, &event);
+									  matrixB->mem, matrixB->offsetMem, n,
+									  0, matrixResult->mem, 0, n,
+									  1, &nn->queue, 0, NULL, &event);
 
-	CLErrorCheck(status, "clBlasSgemm", nameEvent, CHECK_EXIT);
-
+	if (status != CL_SUCCESS) {
+		debugLog("SGEMM %s errorCode: %d", nameEvent, status);
+		exit(status);
+	}
 	CLWaitForEvent(&event, nameEvent);
+	printf("MatrixMultiply(%s): %f\n", nameEvent, timeBetweenEventsMS(event, event));
 	CLReleaseEvent(event, nameEvent);
 }
 
-void CLAnnActivation(CLAnn * nn, CLMatrix * matrix, CLStringConst nameEvent)
+void CLAnnActivation(CLAnn * nn, CLMatrix * matrix, CLActivation activationFunction, CLStringConst nameEvent)
 {
+	if (activationFunction == CLActivationLinear) return;
+
 	CLEvent event;
-	CLUInt workDim = 2;
 	CLSize lws[] = {BLOCK_SIZE, BLOCK_SIZE};
 	CLSize gws[] = {CLGetOptimalGlobalWorkItemsSize(matrix->rows, lws[0]), CLGetOptimalGlobalWorkItemsSize(matrix->columns, lws[1])};
 
 	CLUInt nArg = 0;
-	CLSetKernelArg(nn->kernelActivation, nArg++, sizeof(matrix->mem), &matrix->mem, matrix->name);
-	CLSetKernelArg(nn->kernelActivation, nArg++, sizeof(CLUInt), &matrix->rows, "rows");
-	CLSetKernelArg(nn->kernelActivation, nArg++, sizeof(CLUInt), &matrix->columns, "columns");
+	CLSetKernelArg(nn->kernelActivation[activationFunction], nArg++, sizeof(matrix->mem), &matrix->mem, matrix->name);
+	CLSetKernelArg(nn->kernelActivation[activationFunction], nArg++, sizeof(CLUInt), &matrix->rows, "rows");
+	CLSetKernelArg(nn->kernelActivation[activationFunction], nArg++, sizeof(CLUInt), &matrix->columns, "columns");
 
-	CLEnqueueNDRangeKernel(nn->queue, nn->kernelActivation, workDim, NULL, gws, lws, 0, NULL, &event, nameEvent);
+	CLEnqueueNDRangeKernel(nn->queue, nn->kernelActivation[activationFunction], 2, NULL, gws, lws, 0, NULL, &event, nameEvent);
 	CLWaitForEvent(&event, nameEvent);
+	printf("Activation(%s): %f\n", nameEvent, timeBetweenEventsMS(event, event));
+	CLReleaseEvent(event, "eventActivation");
 }
 
 void CLAnnForward(CLAnn * nn, CLUInt updateWeightsFromHost, CLUInt printOutputs)
 {
 	if (updateWeightsFromHost == CLTrue) {
-
-//		CLEvent eventFillBuffer;
-//		clblasStatus status = clEnqueueWriteBuffer(nn->queue, nn->weights->mem, CLTrue, 0, nn->weights->size, nn->weights->values, 0, NULL, &eventFillBuffer);
-//		CLErrorCheck(status, "clEnqueueFillBuffer", "PORCO_DIO", CHECK_EXIT);
-//		CLWaitForEvent(&eventFillBuffer, "eventFillBuffer");
-
 		CLEvent eventCopyBuffer;
 		clblasStatus status = clEnqueueCopyBuffer(nn->queue, nn->weightsTemp->mem, nn->weights->mem, 0, 0, nn->weightsTemp->size, 0, NULL, &eventCopyBuffer);
 		CLErrorCheck(status, "clEnququeCopyBuffer", "weightsTemp -> weights", CHECK_EXIT);
 		CLWaitForEvent(&eventCopyBuffer, "eventCopyBuffer");
 	}
 
-	CLAnnMatrixMultiply(nn, nn->inputs, nn->weightsForLayer[0], nn->hActivations[0], "inputsXhWeights[0]");
-	CLAnnActivation(nn, nn->hActivations[0], nn->hActivations[0]->name);
+	CLAnnMatrixMultiply(nn, nn->inputs, nn->weightsForLayer[0], nn->hActivations[0], "inputsXhWeightsForLayer[0]");
+	CLAnnActivation(nn, nn->hActivations[0], nn->activationPerLayer[0], nn->hActivations[0]->name);
 
 	//MULTILAYER
 	for (CLUInt i = 1; i < nn->nHiddenLayers; ++i) {
 
 		CLAnnMatrixMultiply(nn, nn->hActivations[i-1], nn->weightsForLayer[i], nn->hActivations[i], nn->hActivations[i]->name);
-		CLAnnActivation(nn, nn->hActivations[i], nn->hActivations[i]->name);
+		CLAnnActivation(nn, nn->hActivations[i], nn->activationPerLayer[i], nn->hActivations[i]->name);
 	}
-
 	//END MULTILAYER
+
 	CLAnnMatrixMultiply(nn, nn->hActivations[nn->nHiddenLayers - 1], nn->weightsForLayer[nn->nHiddenLayers], nn->outputs, nn->outputs->name);
 
-#if DEBUG_LOG
+#if DEBUG_FORWARD
 	CLMatrixPrint(nn->inputs, CLMatrixNoTrans);
 	CLMatrixPrint(nn->weights, CLMatrixNoTrans);
 
@@ -345,11 +346,6 @@ void CLAnnForward(CLAnn * nn, CLUInt updateWeightsFromHost, CLUInt printOutputs)
 	if (printOutputs && ! DEBUG_LOG) {
 		CLAnnPrintResults(nn);
 	}
-
-//	CLMatrixUpdateValuesFromMem(nn->weights, nn->queue);
-//	CLMatrixPrint(nn->weights, CLMatrixNoTrans);
-//	CLMatrixUpdateValuesFromMem(nn->weightsForLayer[0], nn->queue);
-//	CLMatrixPrint(nn->weightsForLayer[0], CLMatrixNoTrans);
 }
 
 CLFloat CLAnnChiSquared(CLAnn * nn)
@@ -361,98 +357,73 @@ CLFloat CLAnnChiSquared(CLAnn * nn)
 
 	//ChiSquared
 	CLEvent eventChiSquared;
-
-	CLUInt workDim = 1;
 	CLSize lws[] = {BLOCK_SIZE};
 	CLSize gws[] = {CLGetOptimalGlobalWorkItemsSize(nn->targets->elements, lws[0])};
 	CLSize nwg = divUpSize(gws[0], lws[0]);
-
-	CLMem chiSquaredError = CLCreateBuffer(nn->context, CL_MEM_READ_WRITE, sizeof(CLFloat) * nwg, "chiSquaredError");
 
 	CLUInt nArg = 0;
 	CLSetKernelArg(nn->kernelChiSquared, nArg++, sizeof(nn->outputs->mem), &nn->outputs->mem, nn->outputs->name);
 	CLSetKernelArg(nn->kernelChiSquared, nArg++, sizeof(nn->targets->mem), &nn->targets->mem, nn->targets->name);
 	CLSetKernelArg(nn->kernelChiSquared, nArg++, sizeof(CLFloat) * BLOCK_SIZE, NULL, "localSums");
-	CLSetKernelArg(nn->kernelChiSquared, nArg++, sizeof(chiSquaredError), &chiSquaredError, "chiSquaredError");
+	CLSetKernelArg(nn->kernelChiSquared, nArg++, sizeof(nn->chiSquaredError), &nn->chiSquaredError, "chiSquaredError");
 	CLSetKernelArg(nn->kernelChiSquared, nArg++, sizeof(CLUInt), &nn->targets->elements, "elements");
 
-	CLEnqueueNDRangeKernel(nn->queue, nn->kernelChiSquared, workDim, NULL, gws, lws, 0, NULL, &eventChiSquared, kChiSquared);
+	CLEnqueueNDRangeKernel(nn->queue, nn->kernelChiSquared, 1, NULL, gws, lws, 0, NULL, &eventChiSquared, kChiSquared);
 	CLWaitForEvent(&eventChiSquared, "eventChiSquared");
-
-#if BENCHMARK
-	CLSize loads = nn->outputs->elements + nn->targets->elements;
-	CLSize stores = nwg;
-	CLSize elements = loads + stores;
-	CLSize dataSize = nn->outputs->size + nn->targets->size + nwg * sizeof(CLFloat);
-	CLSize operations = 3 * elements;
-	CLBenchmarkLog(eventChiSquared, eventChiSquared, loads, stores, elements, dataSize, operations, kChiSquared);
-#endif
 
 	//ChiSquaredReduce
 	CLEvent eventChiSquaredReduce;
 	gws[0] = nwg;
 	lws[0] = nwg;
 	nArg = 0;
-	CLSetKernelArg(nn->kernelChiSquaredReduce, nArg++, sizeof(chiSquaredError), &chiSquaredError, "partialSums");
+	CLSetKernelArg(nn->kernelChiSquaredReduce, nArg++, sizeof(nn->chiSquaredError), &nn->chiSquaredError, "partialSums");
 	CLSetKernelArg(nn->kernelChiSquaredReduce, nArg++, sizeof(CLFloat) * lws[0], NULL, "localSums");
 
-	CLEnqueueNDRangeKernel(nn->queue, nn->kernelChiSquaredReduce, workDim, NULL, gws, lws, 1, &eventChiSquared, &eventChiSquaredReduce, kChiSquaredReduce);
+	CLEnqueueNDRangeKernel(nn->queue, nn->kernelChiSquaredReduce, 1, NULL, gws, lws, 0, NULL, &eventChiSquaredReduce, kChiSquaredReduce);
 	CLWaitForEvent(&eventChiSquaredReduce, "eventChiSquaredReduce");
 
-#if BENCHMARK
-	loads = nwg;
-	stores = 1;
-	elements = nwg;
-	dataSize = sizeof(CLFloat) * (nwg + 1);
-	operations = 3 * elements;
-	CLBenchmarkLog(eventChiSquaredReduce, eventChiSquaredReduce, loads, stores, elements, dataSize, operations, kChiSquaredReduce);
+	CLFloat error = *((CLFloat *)CLEnqueueReadBuffer(nn->queue, nn->chiSquaredError, sizeof(CLFloat), "chiSquaredError"));
+
+
+#if DEBUG_CHI_SQUARED
+	printf("ChiSquared: %f\n", error);
 #endif
 
-	CLFloat error = *((CLFloat *)CLEnqueueReadBuffer(nn->queue, chiSquaredError, sizeof(CLFloat), "chiSquaredError"));
-	debugLog("ChiSquared: %f\n", error);
 
-	//Releases
+	printf("ChiSquared: %f\n", timeBetweenEventsMS(eventChiSquared, eventChiSquaredReduce));
 	CLReleaseEvent(eventChiSquared, "eventChiSquared");
 	CLReleaseEvent(eventChiSquaredReduce, "eventChiSquaredReduce");
-	CLReleaseMemObject(chiSquaredError, "chiSquaredError");
-
 	return error;
 }
 
 void CLAnnJacobian(CLAnn * nn)
 {
-	CLAnnCleanMatrix(nn, nn->jacobian);
-
 	CLUInt offset = 0;
 	CLUInt slope = nn->neuronsPerLayer[0];
 	CLUInt yTimes = nn->nTargets;
-
 	CLUInt nArg = 0;
-	CLSetKernelArg(nn->kernelJacobian, nArg++, sizeof(nn->jacobian->mem), &nn->jacobian->mem, nn->jacobian->name);
-	CLSetKernelArg(nn->kernelJacobian, nArg++, sizeof(nn->inputs->mem), &nn->inputs->mem, nn->inputs->name);
-	CLSetKernelArg(nn->kernelJacobian, nArg++, sizeof(CLUInt), &nn->jacobian->columns, "jacobianColumns");
-	CLSetKernelArg(nn->kernelJacobian, nArg++, sizeof(CLUInt), &nn->inputs->rows, "rowsI");
-	CLSetKernelArg(nn->kernelJacobian, nArg++, sizeof(CLUInt), &nn->inputs->columns, "columnsI");
-	CLSetKernelArg(nn->kernelJacobian, nArg++, sizeof(CLUInt), &offset, "offset");
-	CLSetKernelArg(nn->kernelJacobian, nArg++, sizeof(CLUInt), &slope, "slope");
-	CLSetKernelArg(nn->kernelJacobian, nArg++, sizeof(CLUInt), &yTimes, "yTimes");
 
-	CLEvent eventJacobian;
 	CLUInt workDim = 2;
 	CLSize lws[] = {BLOCK_SIZE, BLOCK_SIZE};
 	CLSize gws[] = {CLGetOptimalGlobalWorkItemsSize(nn->inputs->columns, lws[0]), CLGetOptimalGlobalWorkItemsSize(nn->inputs->rows, lws[1])};
 
-	CLEnqueueNDRangeKernel(nn->queue, nn->kernelJacobian, workDim, NULL, gws, lws, 0, NULL, &eventJacobian, "jacobian");
-	CLWaitForEvent(&eventJacobian, "eventJacobian");
+	CLEvent eventJacobian;
 
-#if BENCHMARK
-	CLSize loads = nn->inputs->elements;
-	CLSize stores = nn->nNeuronsPerLayer * nn->jacobian->rows;
-	CLSize elements = nn->inputs->elements + (nn->nNeuronsPerLayer * nn->jacobian->rows);
-	CLSize dataSize = sizeof(CLFloat) * (loads + stores);
-	CLSize operations = 1;
-	CLBenchmarkLog(eventJacobian, eventJacobian, loads, stores, elements, dataSize, operations, "jacobian");
-#endif
+	if (nn->inputsCopiedIntoJacobian == CLFalse) {
+		CLSetKernelArg(nn->kernelJacobian, nArg++, sizeof(nn->jacobian->mem), &nn->jacobian->mem, nn->jacobian->name);
+		CLSetKernelArg(nn->kernelJacobian, nArg++, sizeof(nn->inputs->mem), &nn->inputs->mem, nn->inputs->name);
+		CLSetKernelArg(nn->kernelJacobian, nArg++, sizeof(CLUInt), &nn->jacobian->columns, "jacobianColumns");
+		CLSetKernelArg(nn->kernelJacobian, nArg++, sizeof(CLUInt), &nn->inputs->rows, "rowsI");
+		CLSetKernelArg(nn->kernelJacobian, nArg++, sizeof(CLUInt), &nn->inputs->columns, "columnsI");
+		CLSetKernelArg(nn->kernelJacobian, nArg++, sizeof(CLUInt), &offset, "offset");
+		CLSetKernelArg(nn->kernelJacobian, nArg++, sizeof(CLUInt), &slope, "slope");
+		CLSetKernelArg(nn->kernelJacobian, nArg++, sizeof(CLUInt), &yTimes, "yTimes");
+
+		CLEnqueueNDRangeKernel(nn->queue, nn->kernelJacobian, workDim, NULL, gws, lws, 0, NULL, &eventJacobian, "jacobian");
+		CLWaitForEvent(&eventJacobian, "eventJacobian");
+
+		nn->inputsCopiedIntoJacobian = CLTrue;
+	}
 
 	offset = nn->nInputs * slope;
 
@@ -476,43 +447,33 @@ void CLAnnJacobian(CLAnn * nn)
 
 		CLEnqueueNDRangeKernel(nn->queue, nn->kernelJacobian, workDim, NULL, gws, lws, 0, NULL, &eventJacobianX, "jacobianX");
 		CLWaitForEvent(&eventJacobianX, "eventJacobianX");
+		CLReleaseEvent(eventJacobianX, "eventJacobianX");
 		offset += nn->neuronsPerLayer[i] * slope;
 	}
-#if BENCHMARK
-	loads = nn->hActivations->elements;
-	stores = nn->nTargets * nn->jacobian->rows;
-	elements = nn->hActivations->elements + (nn->nTargets * nn->jacobian->rows);
-	dataSize = sizeof(CLFloat) * (loads + stores);
-	operations = 1;
-	CLBenchmarkLog(eventJacobian[1], eventJacobian[1], loads, stores, elements, dataSize, operations, "jacobian[1]");
-#endif
 
-#if DEBUG_LOG
+#if DEBUG_JACOBIAN
 	debugLog("offset: %d\nslope: %d\n", offset, slope);
 	CLMatrixUpdateValuesFromMem(nn->jacobian, nn->queue);
 	CLMatrixPrint(nn->jacobian, CLMatrixNoTrans);
 #endif
 
-	//Releases
+
 	CLReleaseEvent(eventJacobian, "eventJacobian");
+
 }
 
 //Hessian = J^T J
 void CLAnnHessian(CLAnn * nn)
 {
-
-	CLAnnCleanMatrix(nn, nn->hessian);
-
 	CLEvent eventHessian;
 	CLSize m = nn->jacobian->columns;
 	CLSize n = nn->jacobian->columns;
 	CLSize k = nn->jacobian->rows;
-	CLFloat alphaBeta = 1.0f;
 
-	clblasStatus status = clblasSgemm(clblasRowMajor, clblasTrans, clblasNoTrans, m, n, k, alphaBeta,
+	clblasStatus status = clblasSgemm(clblasRowMajor, clblasTrans, clblasNoTrans, m, n, k, 1,
 									  nn->jacobian->mem, 0, m,
-									  nn->jacobian->mem, 0, n, alphaBeta,
-									  nn->hessian->mem, 0, n,
+									  nn->jacobian->mem, 0, n,
+									  0, nn->hessian->mem, 0, n,
 									  1, &nn->queue, 0, NULL, &eventHessian);
 
 	if (status != CL_SUCCESS) {
@@ -520,80 +481,46 @@ void CLAnnHessian(CLAnn * nn)
 		exit(status);
 	}
 	CLWaitForEvent(&eventHessian, "eventHessian");
+	CLReleaseEvent(eventHessian, "eventHessian");
 
-#if BENCHMARK
-	CLSize loads = nn->jacobian->size * 2;
-	CLSize stores = nn->hessian->size;
-	CLSize elements = loads + stores;
-	CLSize dataSize = 2 * nn->jacobian->size + nn->hessian->size;
-	CLSize operations = 2 * n * m * n;
-	CLBenchmarkLog(eventHessian, eventHessian, loads, stores, elements, dataSize, operations, "hessian");
-#endif
-
-#if DEBUG_LOG
+#if DEBUG_HESSIAN
 	CLMatrixUpdateValuesFromMem(nn->hessian, nn->queue);
 	CLMatrixPrint(nn->hessian, CLMatrixNoTrans);
 #endif
 
-	//Releases
-	CLReleaseEvent(eventHessian, "eventHessian");}
-
-void CLAnnCholeskyDecomposition(CLAnn * nn, CLFloat mult)
-{
-	if (nn->outputs->mem == NULL) {
-		fprintf(stderr, "Call CLAnnForward() before!");
-		return;
-	}
-	if (nn->jacobian->mem == NULL) {
-		fprintf(stderr, "Call CLAnnJacobian() before!");
-		return;
-	}
-	if (nn->hessian->mem == NULL) {
-		fprintf(stderr, "Call CLAnnHessian() before!");
-		return;
-	}
-
-	if (nn->delta->mem == NULL)
-		CLMatrixCreateMemHostVar(nn->delta, nn->context, CL_MEM_READ_WRITE);
-
-//	CLMatrixReleaseMem(nn->cholesky);
-//	CLMatrixCreateMemHostVar(nn->cholesky, nn->context, CL_MEM_READ_WRITE);
-	CLAnnCleanMatrix(nn, nn->cholesky);
-
 	//Delta
 	CLEvent eventDelta;
 	CLUInt nArg = 0;
-	CLSetKernelArg(nn->kernelDelta, nArg++, sizeof(nn->delta->mem), &nn->delta->mem, nn->delta->name);
+	CLSetKernelArg(nn->kernelDelta, nArg++, sizeof(nn->d->mem), &nn->d->mem, nn->d->name);
 	CLSetKernelArg(nn->kernelDelta, nArg++, sizeof(nn->targets->mem), &nn->targets->mem, nn->targets->name);
 	CLSetKernelArg(nn->kernelDelta, nArg++, sizeof(nn->outputs->mem), &nn->outputs->mem, nn->outputs->name);
 	CLSetKernelArg(nn->kernelDelta, nArg++, sizeof(nn->jacobian->mem), &nn->jacobian->mem, nn->jacobian->name);
 	CLSetKernelArg(nn->kernelDelta, nArg++, sizeof(CLUInt), &nn->targets->elements, "ny");
 	CLSetKernelArg(nn->kernelDelta, nArg++, sizeof(CLUInt), &nn->weights->elements, "npar");
 
-	CLUInt workDim = 1;
 	CLSize lws[] = {BLOCK_SIZE};
-	CLSize gws[] = {CLGetOptimalGlobalWorkItemsSize(nn->delta->columns, BLOCK_SIZE)};
+	CLSize gws[] = {CLGetOptimalGlobalWorkItemsSize(nn->d->columns, BLOCK_SIZE)};
 
-	CLEnqueueNDRangeKernel(nn->queue, nn->kernelDelta, workDim, NULL, gws, lws, 0, NULL, &eventDelta, kDelta);
+	CLEnqueueNDRangeKernel(nn->queue, nn->kernelDelta, 1, NULL, gws, lws, 0, NULL, &eventDelta, kDelta);
 	CLWaitForEvent(&eventDelta, "eventDelta");
+	CLReleaseEvent(eventDelta, "eventDelta");
 
-#if BENCHMARK
-	CLSize loads = nn->targets->elements + nn->outputs->elements + nn->jacobian->elements;
-	CLSize stores = nn->delta->elements;
-	CLSize elements = nn->targets->elements + nn->outputs->elements + nn->jacobian->elements + nn->delta->elements;
-	CLSize dataSize = nn->targets->size + nn->outputs->size + nn->jacobian->size + nn->delta->size;
-	CLSize operations = 3 * nn->jacobian->elements;
-	CLBenchmarkLog(eventDelta, eventDelta, loads, stores, elements, dataSize, operations, "delta");
+#if DEBUG_DELTA
+	CLMatrixUpdateValuesFromMem(nn->d, nn->queue);
+	CLMatrixPrint(nn->d, CLMatrixNoTrans);
 #endif
-	
-#if DEBUG_LOG
-	CLMatrixUpdateValuesFromMem(nn->delta, nn->queue);
-	CLMatrixPrint(nn->delta, CLMatrixNoTrans);
-#endif
+}
+
+void CLAnnCholeskyDecomposition(CLAnn * nn, CLFloat mult)
+{
+	CLAnnCleanMatrix(nn, nn->cholesky);
+
+	nn->ill = CLFalse;
+	clblasStatus status = clEnqueueWriteBuffer(nn->queue, nn->illMem, CLTrue, 0, sizeof(CLInt), &nn->ill, 0, NULL, NULL);
+	CLErrorCheck(status, "clEnqueueWriteBuffer", "copy ill", CHECK_EXIT);
 
 	//CholeskyDecomposition
-	CLMem ill = CLCreateBuffer(nn->context, CL_MEM_READ_WRITE, sizeof(CLUInt), "ill");
-
+#if 0
 	CLEvent eventCholeskyDecomposition;
 
 	nArg = 0;
@@ -601,37 +528,44 @@ void CLAnnCholeskyDecomposition(CLAnn * nn, CLFloat mult)
 	CLSetKernelArg(nn->kernelCholeskyDecomposition, nArg++, sizeof(nn->hessian->mem), &nn->hessian->mem, nn->hessian->name);
 	CLSetKernelArg(nn->kernelCholeskyDecomposition, nArg++, sizeof(CLUInt), &nn->weights->elements, "npar");
 	CLSetKernelArg(nn->kernelCholeskyDecomposition, nArg++, sizeof(CLFloat), &mult, "alpha");
-	CLSetKernelArg(nn->kernelCholeskyDecomposition, nArg++, sizeof(ill), &ill, "ill");
+	CLSetKernelArg(nn->kernelCholeskyDecomposition, nArg++, sizeof(nn->illMem), &nn->illMem, "ill");
 
-	workDim = 1;
 	gws[0] = CLGetOptimalGlobalWorkItemsSize(nn->weights->elements, BLOCK_SIZE);
 	lws[0] = BLOCK_SIZE;
 
-	CLEnqueueNDRangeKernel(nn->queue, nn->kernelCholeskyDecomposition, workDim, NULL, gws, lws, 0, NULL, &eventCholeskyDecomposition, kCholeskyDecomposition);
+	CLEnqueueNDRangeKernel(nn->queue, nn->kernelCholeskyDecomposition, 1, NULL, gws, lws, 0, NULL, &eventCholeskyDecomposition, kCholeskyDecomposition);
 	CLWaitForEvent(&eventCholeskyDecomposition, "eventCholeskyDecomposition");
+	CLReleaseEvent(eventCholeskyDecomposition, "eventCholeskyDecomposition");
 
-#if BENCHMARK
-	//TODO: NON SO CHE PESCI PIJARE!
-//	loads = nn->hessian->elements;
-//	stores = nn->cholesky->elements;
-//	elements = ;
-//	dataSize = ;
-//	operations = ;
-//	CLBenchmarkLog(eventCholeskyDecomposition, eventCholeskyDecomposition, loads, stores, elements, dataSize, operations, kCholeskyDecomposition);
+	nn->ill = ((CLUInt *)CLEnqueueReadBuffer(nn->queue, nn->illMem, sizeof(CLUInt), "ill"))[0];
+#else
+
+	CLSize gws[] = {nn->weights->elements};//CLGetOptimalGlobalWorkItemsSize(nn->weights->elements, BLOCK_SIZE);
+	CLSize lws[] = {nn->weights->elements};//BLOCK_SIZE;
+
+	for (CLUInt i = 0; i < nn->cholesky->rows && nn->ill == CLFalse; ++i) {
+		CLEvent eventCholeskyDecomposition;
+
+		CLUInt nArg = 0;
+		CLSetKernelArg(nn->kernelCholeskyDecomposition, nArg++, sizeof(nn->cholesky->mem), &nn->cholesky->mem, nn->cholesky->name);
+		CLSetKernelArg(nn->kernelCholeskyDecomposition, nArg++, sizeof(nn->hessian->mem), &nn->hessian->mem, nn->hessian->name);
+		CLSetKernelArg(nn->kernelCholeskyDecomposition, nArg++, sizeof(CLUInt), &nn->weights->elements, "npar");
+		CLSetKernelArg(nn->kernelCholeskyDecomposition, nArg++, sizeof(CLFloat), &mult, "alpha");
+		CLSetKernelArg(nn->kernelCholeskyDecomposition, nArg++, sizeof(nn->illMem), &nn->illMem, "ill");
+		CLSetKernelArg(nn->kernelCholeskyDecomposition, nArg++, sizeof(CLUInt), &i, "row");
+
+		CLEnqueueNDRangeKernel(nn->queue, nn->kernelCholeskyDecomposition, 1, NULL, gws, lws, 0, NULL, &eventCholeskyDecomposition, kCholeskyDecomposition);
+		CLWaitForEvent(&eventCholeskyDecomposition, "eventCholeskyDecomposition");
+		CLReleaseEvent(eventCholeskyDecomposition, "eventCholeskyDecomposition");
+		nn->ill = ((CLBool *)CLEnqueueReadBuffer(nn->queue, nn->illMem, sizeof(CLBool), "ill"))[0];
+	}
 #endif
 
-	nn->ill = *((CLUInt *)CLEnqueueReadBuffer(nn->queue, ill, sizeof(CLUInt), "ill"));
-
-#if DEBUG_LOG
+#if DEBUG_CHOLESKY_DECOMPOSITION
 	printf("Ill: %d\n", nn->ill);
 	CLMatrixUpdateValuesFromMem(nn->cholesky, nn->queue);
-	CLMatrixPrint(nn->cholesky, CLMatrixNoTrans);
+	CLMatrixPrint(nn->cholesky, CLMatrixTrans);
 #endif
-
-	//Releases
-	CLReleaseEvent(eventDelta, "eventDelta");
-	CLReleaseEvent(eventCholeskyDecomposition, "eventCholeskyDecomposition");
-	CLReleaseMemObject(ill, "ill");
 }
 
 void CLAnnSolveTriangular(CLAnn * nn, CLMatrix * cholesky, CLMatrix * delta, clblasTranspose uplo, CLStringConst eventName)
@@ -646,85 +580,36 @@ void CLAnnSolveTriangular(CLAnn * nn, CLMatrix * cholesky, CLMatrix * delta, clb
 		exit(status);
 	}
 
-#if DEBUG_LOG
-	CLMatrixUpdateValuesFromMem(nn->delta, nn->queue);
-	CLMatrixPrint(nn->delta, CLMatrixNoTrans);
-#endif
-
 	CLWaitForEvent(&eventSolveTriangular, eventName);
 	CLReleaseEvent(eventSolveTriangular, eventName);
 }
 
 void CLAnnCholeskySolve(CLAnn * nn)
 {
-	CLAnnSolveTriangular(nn, nn->cholesky, nn->delta, clblasTrans, "choleskySolve[0]");
-	CLAnnSolveTriangular(nn, nn->cholesky, nn->delta, clblasNoTrans, "choleskySolve[1]");
+	CLEvent eventCopyDelta;
+	clblasStatus status = clEnqueueCopyBuffer(nn->queue, nn->d->mem, nn->delta->mem, 0, 0, nn->d->size, 0, NULL, &eventCopyDelta);
+	CLErrorCheck(status, "clEnqueueCopyBuffer", "copyDelta", CHECK_EXIT);
 
-//	clblasStatus status;
-//	CLEvent eventCholeskySolve[2];
-//	status = clblasStrsv(clblasRowMajor, clblasUpper, clblasTrans, clblasNonUnit,
-//						 nn->cholesky->rows, nn->cholesky->mem, 0,
-//						 nn->cholesky->rows, nn->delta->mem, 0, 1,
-//						 1, &nn->queue, 0, NULL, &eventCholeskySolve[0]);
-//	if (status != CL_SUCCESS) {
-//		debugLog("CholeskySolve[0] errorCode: %d", status);
-//		exit(status);
-//	}
-//	CLWaitForEvent(&eventCholeskySolve[0], "eventCholeskySolve[0]");
-//
-//	status = clblasStrsv(clblasRowMajor, clblasUpper, clblasNoTrans, clblasNonUnit,
-//						 nn->cholesky->rows, nn->cholesky->mem, 0,
-//						 nn->cholesky->rows, nn->delta->mem, 0, 1,
-//						 1, &nn->queue, 0, NULL, &eventCholeskySolve[1]);
-//	if (status != CL_SUCCESS) {
-//		debugLog("CholeskySolve[1] errorCode: %d", status);
-//		exit(status);
-//	}
-//	CLWaitForEvent(&eventCholeskySolve[1], "eventCholeskySolve[1]");
-
-#if DEBUG_LOG
+#if DEBUG_CHOLESKY_SOLVE
+	printf("\n\n### BEFORE ###\n\n");
+	CLMatrixUpdateValuesFromMem(nn->d, nn->queue);
+	CLMatrixPrint(nn->d, CLMatrixNoTrans);
 	CLMatrixUpdateValuesFromMem(nn->delta, nn->queue);
 	CLMatrixPrint(nn->delta, CLMatrixNoTrans);
 #endif
 
-	//Releases
-//	CLReleaseEvent(eventCholeskySolve[0], "eventCholeskySolve[0]");
-//	CLReleaseEvent(eventCholeskySolve[1], "eventCholeskySolve[1]");
+	CLAnnSolveTriangular(nn, nn->cholesky, nn->delta, clblasTrans, "choleskySolve[0]");
+	CLAnnSolveTriangular(nn, nn->cholesky, nn->delta, clblasNoTrans, "choleskySolve[1]");
+
+#if DEBUG_CHOLESKY_SOLVE
+	printf("\n\n### AFTER ###\n\n");
+
+	CLMatrixUpdateValuesFromMem(nn->d, nn->queue);
+	CLMatrixPrint(nn->d, CLMatrixNoTrans);
+	CLMatrixUpdateValuesFromMem(nn->delta, nn->queue);
+	CLMatrixPrint(nn->delta, CLMatrixNoTrans);
+#endif
 }
-
-//void CLAnnUpdateWeightsTemp(CLAnn * nn)
-//{
-//	if (nn->delta->mem == NULL) {
-//		fprintf(stderr, "Call CLAnnCholeskySolve() before!");
-//		return;
-//	}
-//
-//	clblasStatus status;
-//	CLEvent eventUpdateWeightsTemp;
-//	status = clblasSaxpy(nn->weightsTemp->elements, 1.0f, nn->delta->mem, 0, 1, nn->weightsTemp->mem, 0, 1, 1, &nn->queue, 0, NULL, &eventUpdateWeightsTemp);
-//	if (status != CL_SUCCESS) {
-//		debugLog("UpdateWeightsTemp errorCode: %d", status);
-//		exit(status);
-//	}
-//	CLWaitForEvent(&eventUpdateWeightsTemp, "eventUpdateWeightsTemp");
-//
-//#if BENCHMARK
-//	CLSize loads = nn->weightsTemp->elements + nn->delta->elements;
-//	CLSize stores = nn->weightsTemp->elements;
-//	CLSize elements = nn->weightsTemp->elements + nn->delta->elements;
-//	CLSize dataSize = nn->weightsTemp->size + nn->delta->size;
-//	CLSize operations = nn->weightsTemp->elements;
-//	CLBenchmarkLog(eventUpdateWeights, eventUpdateWeights, loads, stores, elements, dataSize, operations, "updateWeightsTemp");
-//#endif
-//
-//#if DEBUG_LOG
-//	CLMatrixUpdateValuesFromMem(nn->weightsTemp, nn->queue);
-//	CLMatrixPrint(nn->weightsTemp, CLMatrixNoTrans);
-//#endif
-//	//Releases
-//	CLReleaseEvent(eventUpdateWeightsTemp, "eventUpdateWeightsTemp");
-//}
-
 
 void CLAnnUpdateWeights(CLAnn * nn)
 {
@@ -733,18 +618,12 @@ void CLAnnUpdateWeights(CLAnn * nn)
 		return;
 	}
 
-	//TODO: CONTROLLARE SE SERVE
-//	CLEvent eventFillBuffer;
-//	clblasStatus status = clEnqueueWriteBuffer(nn->queue, nn->weights->mem, CLTrue, 0, nn->weights->size, nn->weights->values, 0, NULL, &eventFillBuffer);
-//	CLErrorCheck(status, "clEnqueueFillBuffer", "PORCO_DIO", CHECK_EXIT);
-//	CLWaitForEvent(&eventFillBuffer, "eventFillBuffer");
-
 	CLEvent eventCopyBuffer;
 	clblasStatus status = clEnqueueCopyBuffer(nn->queue, nn->weightsTemp->mem, nn->weights->mem, 0, 0, nn->weightsTemp->size, 0, NULL, &eventCopyBuffer);
 	CLErrorCheck(status, "clEnququeCopyBuffer", "weightsTemp -> weights", CHECK_EXIT);
 	CLWaitForEvent(&eventCopyBuffer, "eventCopyBuffer");
+	CLReleaseEvent(eventCopyBuffer, "eventCopyBuffer");
 
-//	clblasStatus status;
 	CLEvent eventUpdateWeights;
 	status = clblasSaxpy(nn->weights->elements, 1, nn->delta->mem, 0, 1, nn->weights->mem, 0, 1, 1, &nn->queue, 0, NULL, &eventUpdateWeights);
 	if (status != CL_SUCCESS) {
@@ -752,42 +631,21 @@ void CLAnnUpdateWeights(CLAnn * nn)
 		exit(status);
 	}
 	CLWaitForEvent(&eventUpdateWeights, "eventUpdateWeights");
+	CLReleaseEvent(eventUpdateWeights, "eventUpdateWeights");
 
-#if BENCHMARK
-	CLSize loads = nn->weights->elements + nn->delta->elements;
-	CLSize stores = nn->weights->elements;
-	CLSize elements = nn->weights->elements + nn->delta->elements;
-	CLSize dataSize = nn->weights->size + nn->delta->size;
-	CLSize operations = nn->weights->elements;
-	CLBenchmarkLog(eventUpdateWeights, eventUpdateWeights, loads, stores, elements, dataSize, operations, "updateWeights");
-#endif
-
-#if DEBUG_LOG
+#if DEBUG_UPDATE_WEIGHTS
 	CLMatrixUpdateValuesFromMem(nn->weights, nn->queue);
 	CLMatrixPrint(nn->weights, CLMatrixNoTrans);
 #endif
-	//Releases
-	CLReleaseEvent(eventUpdateWeights, "eventUpdateWeights");
 }
 
-//void CLAnnUpdateLocalWeights(CLAnn * nn) {
-//
-//	clblasStatus status;
-//	CLEvent eventConfirmWeights;
-//	status = clblasScopy(nn->weightsTemp->elements, nn->weightsTemp->mem, 0, 1.0f, nn->weights->mem, 0, 1, 1, &nn->queue, 0, NULL, &eventConfirmWeights);
-//	if (status != CL_SUCCESS) {
-//		debugLog("confirmWeights errorCode: %d", status);
-//		exit(status);
-//	}
-//	CLWaitForEvent(&eventConfirmWeights, "eventConfirmWeights");
-//}
 
 void CLAnnUpdateLocalWeights(CLAnn * nn) {
-//	CLMatrixUpdateValuesFromMem(nn->weights, nn->queue);
 	CLEvent eventCopyBuffer;
 	clblasStatus status = clEnqueueCopyBuffer(nn->queue, nn->weights->mem, nn->weightsTemp->mem, 0, 0, nn->weightsTemp->size, 0, NULL, &eventCopyBuffer);
 	CLErrorCheck(status, "clEnququeCopyBuffer", "weightsTemp -> weights", CHECK_EXIT);
 	CLWaitForEvent(&eventCopyBuffer, "eventCopyBuffer");
+	CLReleaseEvent(eventCopyBuffer, "eventCopyBuffer");
 }
 
 CLUInt CLAnnTraining(CLAnn * nn) {
@@ -800,12 +658,6 @@ CLUInt CLAnnTraining(CLAnn * nn) {
 	CLFloat newError = -1.0f;
 	CLFloat deltaError = -1.0f;
 
-
-
-//	CLMatrixUpdateValues(nn->weightsTemp, nn->weights->values);
-//
-//	CLMatrixCreateMemHostVar(nn->weights, nn->context, CL_MEM_READ_WRITE);
-//	CLMatrixCreateMemHostVar(nn->weightsTemp, nn->context, CL_MEM_READ_WRITE);
 
 	CLAnnForward(nn, CLTrue, CLFalse);					//Forward per calcolare l'errore iniziale
 	error = CLAnnChiSquared(nn);						//Calcolo dell'errore iniziale
@@ -838,7 +690,7 @@ CLUInt CLAnnTraining(CLAnn * nn) {
 
 			if (nn->verbose == CLTrue) printf("it = %4d,   lambda = %10g,   err = %10g,   derr = %10g\n", it, lambda, error, deltaError);
 
-			if (isnan(newError) || lambda > 1e30){
+			if (isnan(newError) || lambda > 1e9){
 				return (it == nn->maxIteration);
 			}
 			
@@ -868,16 +720,16 @@ void CLAnnPrintResults(CLAnn * nn)
 	CLMatrixUpdateValuesFromMem(nn->outputs, nn->queue);
 
 	for (CLUInt i = 0; i < nn->nInputs; ++i) {
-		printf(" inputs[%2d] |", i);
+		printf("Inputs[%2d]|", i);
 	}
 	for (CLUInt i = 0; i < nn->nTargets; ++i) {
-		printf(" Target[%2d] |", i);
+		printf("Target[%2d]|", i);
 	}
 	for (CLUInt i = 0; i < nn->nTargets; ++i) {
-		printf(" Output[%2d] |", i);
+		printf("Output[%2d]|", i);
 	}
 	for (CLUInt i = 0; i < nn->nTargets; ++i) {
-		printf("  Error%%[%2d]  |", i);
+		printf(" Error%%[%2d] |", i);
 	}
 	printf("\n");
 
@@ -886,23 +738,23 @@ void CLAnnPrintResults(CLAnn * nn)
 	for (CLUInt p = 0; p < nn->nPatterns; ++p) {
 
 		for (CLUInt i = 0; i < nn->nInputs; ++i) {
-			printf("%12g|", nn->inputs->values[p * nn->nInputs + i]);
+			printf("%+10g|", nn->inputs->values[p * nn->nInputs + i]);
 		}
 
 		for (CLUInt o = 0; o < nn->nTargets; ++o) {
 			errorPerc[o] = nn->targets->values[p * nn->nTargets + o];
-			printf("%12g|", errorPerc[o]);
+			printf("%+10g|", errorPerc[o]);
 		}
 
 		for (CLUInt o = 0; o < nn->nTargets; ++o) {
 			CLFloat value = nn->outputs->values[p * nn->nTargets + o];
 			errorPerc[o] -= value;
-			printf("%12g|", value);
+			printf("%+10g|", value);
 		}
 
 		for (CLUInt o = 0; o < nn->nTargets; ++o) {
 			CLFloat errorPercValue = fabs(errorPerc[o]) * 100;
-			printf( (errorPercValue > 30.0f ? "%12g♥️|" : "%12g💚|"), errorPercValue);
+			printf( (errorPercValue > 30.0f ? "%10g♥️|" : "%10g💚|"), errorPercValue);
 		}
 		printf("\n");
 	}
@@ -911,6 +763,7 @@ void CLAnnPrintResults(CLAnn * nn)
 void CLAnnRelease(CLAnn * nn)
 {
 	CLMatrixRelease(nn->cholesky);
+	CLMatrixRelease(nn->d);
 	CLMatrixRelease(nn->delta);
 	CLMatrixRelease(nn->hessian);
 	CLMatrixRelease(nn->jacobian);
@@ -919,24 +772,34 @@ void CLAnnRelease(CLAnn * nn)
 		CLMatrixRelease(nn->hActivations[i]);
 		CLMatrixRelease(nn->weightsForLayer[i]);
 	}
+	CLMatrixRelease(nn->weightsForLayer[nn->nHiddenLayers]);
 
 	CLMatrixRelease(nn->outputs);
+	CLMatrixRelease(nn->weightsTemp);
 	CLMatrixRelease(nn->weights);
 	CLMatrixRelease(nn->targets);
 	CLMatrixRelease(nn->inputs);
+	CLReleaseMemObject(nn->chiSquaredError, "chiSquaredError");
+
 
 	nn->cholesky = NULL;
+	nn->d = NULL;
 	nn->delta = NULL;
 	nn->hessian = NULL;
 	nn->jacobian = NULL;
 	nn->hActivations = NULL;
 	nn->outputs = NULL;
 	nn->weights = NULL;
+	nn->weightsTemp = NULL;
 	nn->weightsForLayer = NULL;
 	nn->targets = NULL;
 	nn->inputs = NULL;
 
-	CLReleaseKernel(nn->kernelActivation, kActivation);
+	CLReleaseKernel(nn->kernelActivation[CLActivationSigmoid], kActivationSigmoid);
+	CLReleaseKernel(nn->kernelActivation[CLActivationTansig], kActivationTansig);
+	CLReleaseKernel(nn->kernelActivation[CLActivationRadbas], kActivationRadbas);
+
+
 	CLReleaseKernel(nn->kernelChiSquared, kChiSquared);
 	CLReleaseKernel(nn->kernelChiSquaredReduce, kChiSquaredReduce);
 	CLReleaseKernel(nn->kernelJacobian, kJacobian);
