@@ -120,48 +120,6 @@ __kernel void delta(__global float * delta, __global float * y, __global float *
 #define a(r, c) a[(r * npar + c)]
 #define l(r, c) l[(r * npar + c)]
 
-#if 0
-__kernel void choleskyDecomposition(__global float * l, __global float * a, uint npar, float alpha, __global uint * ill)
-{
-	uint y = get_global_id(0); //Cols
-	if (y >= npar) {
-		return;
-	}
-	float sum;
-	float diag;
-
-	a(y, y) *= alpha;
-	barrier(CLK_GLOBAL_MEM_FENCE);
-
-	for(uint x = 0; x < npar; ++x) { //Rows
-
-		sum = a(x, x);
-		for (uint k = 0; k < x; ++k) {
-			float val = l(k, x);
-			sum -= val * val;
-		}
-		if (sum < TOL) {
-			ill[0] = 1;
-			return;
-		}
-		diag = sqrt(sum);
-		l(x, x) = diag;
-
-		barrier(CLK_GLOBAL_MEM_FENCE);
-
-		if (y > x) {
-			sum = a(x, y);
-			for (uint k = 0; k < y; ++k) {
-				sum -= l(k, x) * l(k, y);
-			}
-			l(x, y) = sum / diag;
-		}
-
-		barrier(CLK_GLOBAL_MEM_FENCE);
-	}
-}
-
-#else
 // | l(0,0)      0      0      0 |
 // | l(1,0) l(1,1)      0      0 |
 // | l(2,0) l(2,1) l(2,2)      0 |
@@ -224,7 +182,7 @@ __kernel void choleskyDecomposition(__global float * l, __global float * a, uint
 
 	if (y > x) {
 		sum = a(x, y);
-		for (uint k = 0; k < y; ++k) {
+		for (uint k = 0; k < x; ++k) {
 			sum -= l(k, x) * l(k, y);
 		}
 		l(x, y) = sum / diag;
@@ -233,4 +191,3 @@ __kernel void choleskyDecomposition(__global float * l, __global float * a, uint
 	if (y == x)
 		l(x, x) = diag;
 }
-#endif

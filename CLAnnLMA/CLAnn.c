@@ -283,7 +283,7 @@ void CLAnnMatrixMultiply(CLAnn * nn, CLMatrix * matrixA, CLMatrix * matrixB, CLM
 		exit(status);
 	}
 	CLWaitForEvent(&event, nameEvent);
-	printf("MatrixMultiply(%s): %f\n", nameEvent, timeBetweenEventsMS(event, event));
+	//printf("MatrixMultiply(%s): %f ms\n", nameEvent, timeBetweenEventsMS(event, event));
 	CLReleaseEvent(event, nameEvent);
 }
 
@@ -302,7 +302,7 @@ void CLAnnActivation(CLAnn * nn, CLMatrix * matrix, CLActivation activationFunct
 
 	CLEnqueueNDRangeKernel(nn->queue, nn->kernelActivation[activationFunction], 2, NULL, gws, lws, 0, NULL, &event, nameEvent);
 	CLWaitForEvent(&event, nameEvent);
-	printf("Activation(%s): %f\n", nameEvent, timeBetweenEventsMS(event, event));
+	//printf("Activation(%s): %f ms\n", nameEvent, timeBetweenEventsMS(event, event));
 	CLReleaseEvent(event, "eventActivation");
 }
 
@@ -390,7 +390,7 @@ CLFloat CLAnnChiSquared(CLAnn * nn)
 #endif
 
 
-	printf("ChiSquared: %f\n", timeBetweenEventsMS(eventChiSquared, eventChiSquaredReduce));
+	//printf("ChiSquared: %f ms\n", timeBetweenEventsMS(eventChiSquared, eventChiSquaredReduce));
 	CLReleaseEvent(eventChiSquared, "eventChiSquared");
 	CLReleaseEvent(eventChiSquaredReduce, "eventChiSquaredReduce");
 	return error;
@@ -407,9 +407,12 @@ void CLAnnJacobian(CLAnn * nn)
 	CLSize lws[] = {BLOCK_SIZE, BLOCK_SIZE};
 	CLSize gws[] = {CLGetOptimalGlobalWorkItemsSize(nn->inputs->columns, lws[0]), CLGetOptimalGlobalWorkItemsSize(nn->inputs->rows, lws[1])};
 
-	CLEvent eventJacobian;
+
 
 	if (nn->inputsCopiedIntoJacobian == CLFalse) {
+
+		CLEvent eventJacobian;
+
 		CLSetKernelArg(nn->kernelJacobian, nArg++, sizeof(nn->jacobian->mem), &nn->jacobian->mem, nn->jacobian->name);
 		CLSetKernelArg(nn->kernelJacobian, nArg++, sizeof(nn->inputs->mem), &nn->inputs->mem, nn->inputs->name);
 		CLSetKernelArg(nn->kernelJacobian, nArg++, sizeof(CLUInt), &nn->jacobian->columns, "jacobianColumns");
@@ -421,17 +424,19 @@ void CLAnnJacobian(CLAnn * nn)
 
 		CLEnqueueNDRangeKernel(nn->queue, nn->kernelJacobian, workDim, NULL, gws, lws, 0, NULL, &eventJacobian, "jacobian");
 		CLWaitForEvent(&eventJacobian, "eventJacobian");
+		CLReleaseEvent(eventJacobian, "eventJacobian");
 
 		nn->inputsCopiedIntoJacobian = CLTrue;
 	}
 
 	offset = nn->nInputs * slope;
 
+	CLEvent * eventJacobianX = malloc(sizeof(CLEvent) * nn->nHiddenLayers);
+
 	for (CLUInt i = 0; i < nn->nHiddenLayers; ++i) {
 
 		slope = (i == nn->nHiddenLayers - 1 ? nn->nTargets : nn->neuronsPerLayer[i + 1]);
 
-		CLEvent eventJacobianX;
 		nArg = 0;
 		CLSetKernelArg(nn->kernelJacobian, nArg++, sizeof(nn->jacobian->mem), &nn->jacobian->mem, nn->jacobian->name);
 		CLSetKernelArg(nn->kernelJacobian, nArg++, sizeof(nn->hActivations[i]->mem), &nn->hActivations[i]->mem, nn->hActivations[i]->name);
@@ -445,9 +450,8 @@ void CLAnnJacobian(CLAnn * nn)
 		gws[0] = CLGetOptimalGlobalWorkItemsSize(nn->hActivations[i]->columns, lws[0]);
 		gws[1] = CLGetOptimalGlobalWorkItemsSize(nn->hActivations[i]->rows, lws[1]);
 
-		CLEnqueueNDRangeKernel(nn->queue, nn->kernelJacobian, workDim, NULL, gws, lws, 0, NULL, &eventJacobianX, "jacobianX");
-		CLWaitForEvent(&eventJacobianX, "eventJacobianX");
-		CLReleaseEvent(eventJacobianX, "eventJacobianX");
+		CLEnqueueNDRangeKernel(nn->queue, nn->kernelJacobian, workDim, NULL, gws, lws, 0, NULL, eventJacobianX+i, "jacobianX");
+		CLWaitForEvent(eventJacobianX+i, "eventJacobianX");
 		offset += nn->neuronsPerLayer[i] * slope;
 	}
 
@@ -457,8 +461,11 @@ void CLAnnJacobian(CLAnn * nn)
 	CLMatrixPrint(nn->jacobian, CLMatrixNoTrans);
 #endif
 
+	//printf("Jacobian: %f ms\n", timeBetweenEventsMS(eventJacobianX[0], eventJacobianX[nn->nHiddenLayers-1]));
 
-	CLReleaseEvent(eventJacobian, "eventJacobian");
+	for (CLUInt i = 0; i < nn->nHiddenLayers; ++i) {
+		CLReleaseEvent(eventJacobianX[i], "eventJacobianX");
+	}
 
 }
 
@@ -481,6 +488,9 @@ void CLAnnHessian(CLAnn * nn)
 		exit(status);
 	}
 	CLWaitForEvent(&eventHessian, "eventHessian");
+
+	//printf("Hessian: %f ms\n", timeBetweenEventsMS(eventHessian, eventHessian));
+
 	CLReleaseEvent(eventHessian, "eventHessian");
 
 #if DEBUG_HESSIAN
@@ -503,6 +513,8 @@ void CLAnnHessian(CLAnn * nn)
 
 	CLEnqueueNDRangeKernel(nn->queue, nn->kernelDelta, 1, NULL, gws, lws, 0, NULL, &eventDelta, kDelta);
 	CLWaitForEvent(&eventDelta, "eventDelta");
+
+	//printf("Delta: %f ms\n", timeBetweenEventsMS(eventDelta, eventDelta));
 	CLReleaseEvent(eventDelta, "eventDelta");
 
 #if DEBUG_DELTA
@@ -543,29 +555,39 @@ void CLAnnCholeskyDecomposition(CLAnn * nn, CLFloat mult)
 	CLSize gws[] = {nn->weights->elements};//CLGetOptimalGlobalWorkItemsSize(nn->weights->elements, BLOCK_SIZE);
 	CLSize lws[] = {nn->weights->elements};//BLOCK_SIZE;
 
-	for (CLUInt i = 0; i < nn->cholesky->rows && nn->ill == CLFalse; ++i) {
-		CLEvent eventCholeskyDecomposition;
+	CLUInt nArg = 0;
+	CLSetKernelArg(nn->kernelCholeskyDecomposition, nArg++, sizeof(nn->cholesky->mem), &nn->cholesky->mem, nn->cholesky->name);
+	CLSetKernelArg(nn->kernelCholeskyDecomposition, nArg++, sizeof(nn->hessian->mem), &nn->hessian->mem, nn->hessian->name);
+	CLSetKernelArg(nn->kernelCholeskyDecomposition, nArg++, sizeof(CLUInt), &nn->weights->elements, "npar");
+	CLSetKernelArg(nn->kernelCholeskyDecomposition, nArg++, sizeof(CLFloat), &mult, "alpha");
+	CLSetKernelArg(nn->kernelCholeskyDecomposition, nArg++, sizeof(nn->illMem), &nn->illMem, "ill");
 
-		CLUInt nArg = 0;
-		CLSetKernelArg(nn->kernelCholeskyDecomposition, nArg++, sizeof(nn->cholesky->mem), &nn->cholesky->mem, nn->cholesky->name);
-		CLSetKernelArg(nn->kernelCholeskyDecomposition, nArg++, sizeof(nn->hessian->mem), &nn->hessian->mem, nn->hessian->name);
-		CLSetKernelArg(nn->kernelCholeskyDecomposition, nArg++, sizeof(CLUInt), &nn->weights->elements, "npar");
-		CLSetKernelArg(nn->kernelCholeskyDecomposition, nArg++, sizeof(CLFloat), &mult, "alpha");
-		CLSetKernelArg(nn->kernelCholeskyDecomposition, nArg++, sizeof(nn->illMem), &nn->illMem, "ill");
-		CLSetKernelArg(nn->kernelCholeskyDecomposition, nArg++, sizeof(CLUInt), &i, "row");
+	CLEvent * eventCholeskyDecomposition = malloc(sizeof(CLEvent) * nn->cholesky->rows);
 
-		CLEnqueueNDRangeKernel(nn->queue, nn->kernelCholeskyDecomposition, 1, NULL, gws, lws, 0, NULL, &eventCholeskyDecomposition, kCholeskyDecomposition);
-		CLWaitForEvent(&eventCholeskyDecomposition, "eventCholeskyDecomposition");
-		CLReleaseEvent(eventCholeskyDecomposition, "eventCholeskyDecomposition");
-		nn->ill = ((CLBool *)CLEnqueueReadBuffer(nn->queue, nn->illMem, sizeof(CLBool), "ill"))[0];
+	CLUInt lastKernelCall = 0;
+	for (CLUInt i = 0; i < nn->cholesky->rows; ++i, ++lastKernelCall) {
+
+		CLSetKernelArg(nn->kernelCholeskyDecomposition, nArg, sizeof(CLUInt), &i, "row");
+
+		CLEnqueueNDRangeKernel(nn->queue, nn->kernelCholeskyDecomposition, 1, NULL, gws, lws, 0, NULL, eventCholeskyDecomposition+i, kCholeskyDecomposition);
+		CLWaitForEvent(eventCholeskyDecomposition+i, "eventCholeskyDecomposition");
 	}
 #endif
+
+	nn->ill = ((CLBool *)CLEnqueueReadBuffer(nn->queue, nn->illMem, sizeof(CLBool), "ill"))[0];
 
 #if DEBUG_CHOLESKY_DECOMPOSITION
 	printf("Ill: %d\n", nn->ill);
 	CLMatrixUpdateValuesFromMem(nn->cholesky, nn->queue);
 	CLMatrixPrint(nn->cholesky, CLMatrixTrans);
 #endif
+
+	//printf("CholeskyDecomposition: %f ms\n", timeBetweenEventsMS(eventCholeskyDecomposition[0], eventCholeskyDecomposition[lastKernelCall - 1]));
+
+	for (CLUInt i = 0; i < nn->cholesky->rows; ++i) {
+		CLReleaseEvent(eventCholeskyDecomposition[i], "eventCholeskyDecomposition");
+	}
+
 }
 
 void CLAnnSolveTriangular(CLAnn * nn, CLMatrix * cholesky, CLMatrix * delta, clblasTranspose uplo, CLStringConst eventName)
@@ -581,6 +603,7 @@ void CLAnnSolveTriangular(CLAnn * nn, CLMatrix * cholesky, CLMatrix * delta, clb
 	}
 
 	CLWaitForEvent(&eventSolveTriangular, eventName);
+	//printf("SolveTriangular(%s): %f ms\n", eventName, timeBetweenEventsMS(eventSolveTriangular, eventSolveTriangular));
 	CLReleaseEvent(eventSolveTriangular, eventName);
 }
 

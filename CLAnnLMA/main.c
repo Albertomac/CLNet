@@ -72,8 +72,8 @@ void setupNetForXOR(CLAnn * net)
 //		-7.942422,  5.197197, -1.054466, -1.915232, -7.835067,  5.540699, -2.905327,  7.677764, -2.450965, -1.859408};
 //	CLMatrixUpdateValues(net->weights, _weights);
 
-	//CLAnnUpdateWithRandomWeights(net);
-	CLMatrixInitWithCSV(net->weights, "/Users/Albertomac/Desktop/irisDataSet/weights36.csv");
+	CLAnnUpdateWithRandomWeights(net);
+	//CLMatrixInitWithCSV(net->weights, "/Users/Albertomac/Desktop/irisDataSet/weights36.csv");
 }
 
 void setupNetForPoly(CLAnn * net)
@@ -110,9 +110,9 @@ void setupNetForIris(CLAnn * net)
 	CLString name = "Iris";
 	CLUInt nPattern = 150;
 	CLUInt nInputs = 4;
-	CLUInt nHiddenLayers = 1;
-	CLActivation activationPerLayer[] = {CLActivationRadbas};
-	CLUInt nNeuronsPerLayer[] = {65};
+	CLUInt nHiddenLayers = 2;
+	CLActivation activationPerLayer[] = {CLActivationRadbas, CLActivationTansig};
+	CLUInt nNeuronsPerLayer[] = {7, 5};
 	CLUInt nOutputs = 3;
 
 	CLAnnInit(net, nPattern, nInputs, nHiddenLayers, activationPerLayer, (CLUInt *)nNeuronsPerLayer, nOutputs, name);
