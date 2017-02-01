@@ -117,8 +117,8 @@ void setupNetForIris(CLAnn * net)
 
 	CLAnnInit(net, nPattern, nInputs, nHiddenLayers, activationPerLayer, (CLUInt *)nNeuronsPerLayer, nOutputs, name);
 
-	CLMatrixInitWithCSV(net->inputs, "/Users/Albertomac/Desktop/irisDataSet/irisInputs.csv");
-	CLMatrixInitWithCSV(net->targets, "/Users/Albertomac/Desktop/irisDataSet/irisTargets.csv");
+	CLMatrixInitWithCSV(net->inputs, "irisInputs.csv");
+	CLMatrixInitWithCSV(net->targets, "irisTargets.csv");
 
 	CLMatrixNormalize(net->inputs);
 	CLAnnShufflePatterns(net);
@@ -143,7 +143,7 @@ int main(int argc, const char * argv[]) {
 
 	CLAnn * net = malloc(sizeof(CLAnn));
 
-	switch (0) {
+	switch (2) {
 
 		case 0:
 			setupNetForXOR(net);

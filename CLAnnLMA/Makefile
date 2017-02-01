@@ -12,6 +12,7 @@ ifeq ($(uname_S),Darwin)
 
 else
 	LDLIBS=-lrt -lOpenCL -lbsd -lclBLAS
+	CFLAGS+= -D_DEFAULT_SOURCE
 endif
 
 

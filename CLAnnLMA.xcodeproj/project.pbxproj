@@ -17,6 +17,8 @@
 		F3C018F61DCE427900062459 /* CLManager.c in Sources */ = {isa = PBXBuildFile; fileRef = F3C018F31DCE427900062459 /* CLManager.c */; };
 		F3C018F91DCE45F200062459 /* CLMatrix.c in Sources */ = {isa = PBXBuildFile; fileRef = F3C018F71DCE45F200062459 /* CLMatrix.c */; };
 		F3D44FCF1E3A366E00FD6DC9 /* CLNet.c in Sources */ = {isa = PBXBuildFile; fileRef = F3D44FCD1E3A366E00FD6DC9 /* CLNet.c */; };
+		F3FCDD801E4218AE00FEA0E9 /* irisInputs.csv in CopyFiles */ = {isa = PBXBuildFile; fileRef = F3FCDD7E1E42186F00FEA0E9 /* irisInputs.csv */; };
+		F3FCDD811E4218AE00FEA0E9 /* irisTargets.csv in CopyFiles */ = {isa = PBXBuildFile; fileRef = F3FCDD7F1E42186F00FEA0E9 /* irisTargets.csv */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -26,6 +28,8 @@
 			dstPath = "";
 			dstSubfolderSpec = 16;
 			files = (
+				F3FCDD801E4218AE00FEA0E9 /* irisInputs.csv in CopyFiles */,
+				F3FCDD811E4218AE00FEA0E9 /* irisTargets.csv in CopyFiles */,
 				F33124F11DCF762C0009950C /* Kernels.ocl in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -53,6 +57,8 @@
 		F3C1B4491DD2956C008E59D9 /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
 		F3D44FCD1E3A366E00FD6DC9 /* CLNet.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CLNet.c; sourceTree = "<group>"; };
 		F3D44FCE1E3A366E00FD6DC9 /* CLNet.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CLNet.h; sourceTree = "<group>"; };
+		F3FCDD7E1E42186F00FEA0E9 /* irisInputs.csv */ = {isa = PBXFileReference; lastKnownFileType = text; path = irisInputs.csv; sourceTree = "<group>"; };
+		F3FCDD7F1E42186F00FEA0E9 /* irisTargets.csv */ = {isa = PBXFileReference; lastKnownFileType = text; path = irisTargets.csv; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -105,6 +111,8 @@
 				F3D44FCE1E3A366E00FD6DC9 /* CLNet.h */,
 				F3D44FCD1E3A366E00FD6DC9 /* CLNet.c */,
 				F315E9311E3F7AD700F63D36 /* libclBLAS.2.11.0.dylib */,
+				F3FCDD7E1E42186F00FEA0E9 /* irisInputs.csv */,
+				F3FCDD7F1E42186F00FEA0E9 /* irisTargets.csv */,
 			);
 			path = CLAnnLMA;
 			sourceTree = "<group>";

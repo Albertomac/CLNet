@@ -14,6 +14,7 @@
 #ifdef __APPLE__
 #include <stdlib.h>
 #else
+#include <stdlib.h>
 #include <bsd/stdlib.h>
 #endif
 
