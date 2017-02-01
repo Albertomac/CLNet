@@ -8,7 +8,13 @@
 
 #include "CLAnn.h"
 #include <math.h>
+
+#ifdef __APPLE__
 #include </usr/local/include/clBLAS.h>
+#else
+#include<clBlas.h>
+#endif
+
 #include "CLBenchmark.h"
 #include "CLRandom.h"
 

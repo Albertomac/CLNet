@@ -22,6 +22,7 @@ void CLMatrixInit(CLMatrix * matrix, CLUInt rows, CLUInt columns, CLStringConst 
 	matrix->columns = columns;
 	matrix->elements = matrix->rows * matrix->columns;
 	matrix->size = sizeof(CLFloat) * matrix->elements;
+	matrix->offsetMem = 0;
 
 	matrix->values = malloc(matrix->size);
 	CLMatrixFillValue(matrix, 0.0f);

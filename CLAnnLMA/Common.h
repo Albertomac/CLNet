@@ -24,7 +24,7 @@
 #define BENCHMARK CLFalse
 
 //Debug
-#define DEBUG_LOG CLFalse
+#define DEBUG_LOG CLTrue
 
 #define debugLog(fmt, ...) \
 do { if (DEBUG_LOG) fprintf(stderr, fmt, __VA_ARGS__); } while (0)
