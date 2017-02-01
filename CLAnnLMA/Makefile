@@ -8,10 +8,10 @@ ifeq ($(uname_S),Darwin)
 	LDLIBS=-framework OpenCL
 
 	CFLAGS+=-I $(CLBLAS_PATH)/include
-	LDLIBS+=-L $(CLBLAS_PATH)/lib -l clBLAS
+	LDLIBS+=-L $(CLBLAS_PATH)/lib -lclBLAS
 
 else
-	LDLIBS=-lrt -lOpenCL -lbsd
+	LDLIBS=-lrt -lOpenCL -lbsd -lclBLAS
 endif
 
 
