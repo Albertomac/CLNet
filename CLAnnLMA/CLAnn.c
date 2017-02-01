@@ -182,6 +182,16 @@ void CLAnnShufflePatterns(CLAnn * nn)
 	}
 }
 
+CLUInt getReferenceCountOfMem(CLMem mem)
+{
+	CLSize sizeValue = sizeof(CLUInt);
+	CLUInt value = 0;
+	CLSize sizeValueRet = 0;
+	CLInt error = clGetMemObjectInfo(mem, CL_MEM_REFERENCE_COUNT, sizeValue, &value, &sizeValueRet);
+	CLErrorCheck(error, "clGetMemObjectInfo", "CL_MEM_REFERENCE_COUNT", CHECK_NOT_EXIT);
+	return value;
+}
+
 void CLAnnSetupTrainingFor(CLAnn * nn, CLPlatform platform, CLDevice device)
 {
 	nn->platform = platform;
@@ -220,7 +230,7 @@ void CLAnnSetupTrainingFor(CLAnn * nn, CLPlatform platform, CLDevice device)
 		clRetainMemObject(nn->weights->mem);
 	}
 
-	CLMatrixCreateMem(nn->outputs, nn->context, CL_MEM_READ_ONLY);
+	CLMatrixCreateMem(nn->outputs, nn->context, CL_MEM_READ_WRITE);
 
 	for (CLUInt i = 0; i < nn->nHiddenLayers; ++i) {
 		CLMatrixCreateMem(nn->hActivations[i], nn->context, CL_MEM_READ_WRITE);
@@ -253,6 +263,9 @@ void CLAnnSetupTrainingFor(CLAnn * nn, CLPlatform platform, CLDevice device)
 		default:
 			break;
 	}
+
+
+	printf("CLMem weights reference count: %d\n", getReferenceCountOfMem(nn->weights->mem));
 }
 
 void CLAnnCleanMatrix(CLAnn * nn, CLMatrix * matrix)
@@ -800,12 +813,22 @@ void CLAnnRelease(CLAnn * nn)
 	for (CLUInt i = 0; i < nn->nHiddenLayers; ++i) {
 		CLMatrixRelease(nn->hActivations[i]);
 		CLMatrixRelease(nn->weightsForLayer[i]);
+		printf("CLMem weights reference count: %d\n", getReferenceCountOfMem(nn->weights->mem));
 	}
+	printf("CLMem weights reference count: %d\n", getReferenceCountOfMem(nn->weights->mem));
 	CLMatrixRelease(nn->weightsForLayer[nn->nHiddenLayers]);
+	printf("CLMem weights reference count: %d\n", getReferenceCountOfMem(nn->weights->mem));
 
 	CLMatrixRelease(nn->outputs);
+	printf("CLMem weights reference count: %d\n", getReferenceCountOfMem(nn->weights->mem));
+
 	CLMatrixRelease(nn->weightsTemp);
+	printf("CLMem weights reference count: %d\n", getReferenceCountOfMem(nn->weights->mem));
+
+	printf("vediamo che succede");
 	CLMatrixRelease(nn->weights);
+	printf("CLMem weights reference count: %d\n", getReferenceCountOfMem(nn->weights->mem));
+
 	CLMatrixRelease(nn->targets);
 	CLMatrixRelease(nn->inputs);
 	CLReleaseMemObject(nn->chiSquaredError, "chiSquaredError");

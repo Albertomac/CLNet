@@ -7,11 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		F315E9321E3F7AD700F63D36 /* libclBLAS.2.11.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F315E9311E3F7AD700F63D36 /* libclBLAS.2.11.0.dylib */; };
 		F32338161E12C6F3007E915D /* csvparser.c in Sources */ = {isa = PBXBuildFile; fileRef = F32338141E12C6F3007E915D /* csvparser.c */; };
 		F33124ED1DCF35880009950C /* CLAnn.c in Sources */ = {isa = PBXBuildFile; fileRef = F33124EB1DCF35880009950C /* CLAnn.c */; };
 		F33124F11DCF762C0009950C /* Kernels.ocl in CopyFiles */ = {isa = PBXBuildFile; fileRef = F33124F01DCF71600009950C /* Kernels.ocl */; };
 		F3413CEE1DD1F1D7006BC6BB /* CLRandom.c in Sources */ = {isa = PBXBuildFile; fileRef = F3413CEC1DD1F1D7006BC6BB /* CLRandom.c */; };
+		F38745211E4240C700DB26BF /* libclBLAS.2.11.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F38745201E4240C700DB26BF /* libclBLAS.2.11.0.dylib */; };
 		F3B7EF0C1DD330CF0046EC7C /* CLBenchmark.c in Sources */ = {isa = PBXBuildFile; fileRef = F3B7EF0A1DD330CF0046EC7C /* CLBenchmark.c */; };
 		F3C018ED1DCE423400062459 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = F3C018EC1DCE423400062459 /* main.c */; };
 		F3C018F61DCE427900062459 /* CLManager.c in Sources */ = {isa = PBXBuildFile; fileRef = F3C018F31DCE427900062459 /* CLManager.c */; };
@@ -37,7 +37,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		F315E9311E3F7AD700F63D36 /* libclBLAS.2.11.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libclBLAS.2.11.0.dylib; sourceTree = "<group>"; };
 		F32338141E12C6F3007E915D /* csvparser.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = csvparser.c; sourceTree = "<group>"; };
 		F32338151E12C6F3007E915D /* csvparser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = csvparser.h; sourceTree = "<group>"; };
 		F33124EB1DCF35880009950C /* CLAnn.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CLAnn.c; sourceTree = "<group>"; };
@@ -45,6 +44,7 @@
 		F33124F01DCF71600009950C /* Kernels.ocl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Kernels.ocl; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.opencl; };
 		F3413CEC1DD1F1D7006BC6BB /* CLRandom.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CLRandom.c; sourceTree = "<group>"; };
 		F3413CED1DD1F1D7006BC6BB /* CLRandom.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CLRandom.h; sourceTree = "<group>"; };
+		F38745201E4240C700DB26BF /* libclBLAS.2.11.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libclBLAS.2.11.0.dylib; sourceTree = "<group>"; };
 		F3B7EF0A1DD330CF0046EC7C /* CLBenchmark.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CLBenchmark.c; sourceTree = "<group>"; };
 		F3B7EF0B1DD330CF0046EC7C /* CLBenchmark.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CLBenchmark.h; sourceTree = "<group>"; };
 		F3C018E91DCE423400062459 /* CLAnnLMA */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = CLAnnLMA; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -66,7 +66,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F315E9321E3F7AD700F63D36 /* libclBLAS.2.11.0.dylib in Frameworks */,
+				F38745211E4240C700DB26BF /* libclBLAS.2.11.0.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -110,7 +110,7 @@
 				F32338141E12C6F3007E915D /* csvparser.c */,
 				F3D44FCE1E3A366E00FD6DC9 /* CLNet.h */,
 				F3D44FCD1E3A366E00FD6DC9 /* CLNet.c */,
-				F315E9311E3F7AD700F63D36 /* libclBLAS.2.11.0.dylib */,
+				F38745201E4240C700DB26BF /* libclBLAS.2.11.0.dylib */,
 				F3FCDD7E1E42186F00FEA0E9 /* irisInputs.csv */,
 				F3FCDD7F1E42186F00FEA0E9 /* irisTargets.csv */,
 			);

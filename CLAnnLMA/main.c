@@ -143,7 +143,7 @@ int main(int argc, const char * argv[]) {
 
 	CLAnn * net = malloc(sizeof(CLAnn));
 
-	switch (2) {
+	switch (0) {
 
 		case 0:
 			setupNetForXOR(net);

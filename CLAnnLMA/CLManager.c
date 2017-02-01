@@ -142,7 +142,7 @@ CLFloat timeBetweenEventsS(CLEvent start, CLEvent finish)
 void CLErrorCheck(CLInt error, CLStringConst function, CLStringConst message, CLInt needExit)
 {
 	if (error != CL_SUCCESS) {
-		fprintf(stderr, "%s - %s: %s\n", function, message, getErrorName(error));
+		fprintf(stderr, "%s - %s - errorCode: %d - error: %s\n", function, message, error, getErrorName(error));
 
 		if (needExit == CHECK_EXIT) {
 			exit(error);

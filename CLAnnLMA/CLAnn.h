@@ -27,20 +27,14 @@
 
 /*
  TODO:
- 
+
+ fare in modo che funzioni sia con i CLFloat che con i CLDouble
+
  benchmarks file with useful runs
  improve opencl kernels
 
- //[ NON SI PUO' FARE ]
- //Packed vuol dire che la matrice è linearizzata, tipo una matrice trinagolare viene linearizzata eliminando gli zeri che stanno sopra (o sotto) alla diagonale.
- //Banded vuol dire che la matrice contiene degli zeri e si può risparmiare spazio e di conseguenza è più veloce nell'effettuare operazioni
- //improve clblas with banded operations
-
- getting works clblas for cpu
-
  Aggiungere la possibilità di stabilire la % di training set e la % di test
 
- new Name for the project
  */
 
 typedef enum CLActivation_ {
