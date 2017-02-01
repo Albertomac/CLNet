@@ -1,4 +1,4 @@
-CFLAGS=-std=c99 -Wall -Wextra -g -O3 -march=native -Wno-unknown-programs
+CFLAGS=-std=c99 -Wall -Wextra -g -O3 -march=native -Wno-unknown-pragmas
 
 CLBLAS_PATH=/usr/local
 

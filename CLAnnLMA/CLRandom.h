@@ -10,7 +10,12 @@
 #define CLRandom_h
 
 #include <stdio.h>
+
+#ifdef __APPLE__
 #include <stdlib.h>
+#else
+#include <bsd/stdlib.h>
+#endif
 
 void CLRandomSetup();
 

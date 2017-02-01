@@ -12,7 +12,7 @@
 #ifdef __APPLE__
 #include </usr/local/include/clBLAS.h>
 #else
-#include<clBlas.h>
+#include <clBLAS.h>
 #endif
 
 #include "CLBenchmark.h"
