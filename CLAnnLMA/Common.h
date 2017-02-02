@@ -29,8 +29,7 @@
 #define debugLog(fmt, ...) \
 do { if (DEBUG_LOG) fprintf(stderr, fmt, __VA_ARGS__); } while (0)
 
-//Float tollerance
-#define CLFTollerance 1.0e-5
+
 
 //Types
 #define CLPlatform cl_platform_id
@@ -62,5 +61,33 @@ do { if (DEBUG_LOG) fprintf(stderr, fmt, __VA_ARGS__); } while (0)
 #define CLStringConst const CLString
 #define CLSize size_t
 #define CLSSize ssize_t
+
+//Precision of values
+#define CLNetPrecisionDouble CLFalse
+
+#if CLNetPrecisionDouble
+	#define CLNetDataType CLDouble
+	#define CLFTollerance 1.0e-10
+#else
+	#define CLNetDataType CLFloat
+	#define CLFTollerance 1.0e-5
+#endif
+
+
+//Kernels
+#define kMemSet "arrayMemSet"
+
+#define nActivationFunctions 3
+#define kActivationSigmoid "activationSigmoid"
+#define kActivationTansig "activationTansig"
+#define kActivationRadbas "activationRadbas"
+//#define kActivationPerceptron "activationPerceptron"
+
+#define kChiSquared "chiSquared"
+#define kChiSquaredReduce "chiSquaredReduce"
+#define kJacobian "jacobian"
+#define kDelta "delta"
+#define kCholeskyDecomposition "choleskyDecomposition"
+
 
 #endif /* Common_h */

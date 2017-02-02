@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F31E63871E438E4C00CC2512 /* CLNet.c in Sources */ = {isa = PBXBuildFile; fileRef = F3D44FCD1E3A366E00FD6DC9 /* CLNet.c */; };
 		F32338161E12C6F3007E915D /* csvparser.c in Sources */ = {isa = PBXBuildFile; fileRef = F32338141E12C6F3007E915D /* csvparser.c */; };
-		F33124ED1DCF35880009950C /* CLAnn.c in Sources */ = {isa = PBXBuildFile; fileRef = F33124EB1DCF35880009950C /* CLAnn.c */; };
 		F33124F11DCF762C0009950C /* Kernels.ocl in CopyFiles */ = {isa = PBXBuildFile; fileRef = F33124F01DCF71600009950C /* Kernels.ocl */; };
 		F3413CEE1DD1F1D7006BC6BB /* CLRandom.c in Sources */ = {isa = PBXBuildFile; fileRef = F3413CEC1DD1F1D7006BC6BB /* CLRandom.c */; };
 		F38745211E4240C700DB26BF /* libclBLAS.2.11.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = F38745201E4240C700DB26BF /* libclBLAS.2.11.0.dylib */; };
@@ -16,7 +16,6 @@
 		F3C018ED1DCE423400062459 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = F3C018EC1DCE423400062459 /* main.c */; };
 		F3C018F61DCE427900062459 /* CLManager.c in Sources */ = {isa = PBXBuildFile; fileRef = F3C018F31DCE427900062459 /* CLManager.c */; };
 		F3C018F91DCE45F200062459 /* CLMatrix.c in Sources */ = {isa = PBXBuildFile; fileRef = F3C018F71DCE45F200062459 /* CLMatrix.c */; };
-		F3D44FCF1E3A366E00FD6DC9 /* CLNet.c in Sources */ = {isa = PBXBuildFile; fileRef = F3D44FCD1E3A366E00FD6DC9 /* CLNet.c */; };
 		F3FCDD801E4218AE00FEA0E9 /* irisInputs.csv in CopyFiles */ = {isa = PBXBuildFile; fileRef = F3FCDD7E1E42186F00FEA0E9 /* irisInputs.csv */; };
 		F3FCDD811E4218AE00FEA0E9 /* irisTargets.csv in CopyFiles */ = {isa = PBXBuildFile; fileRef = F3FCDD7F1E42186F00FEA0E9 /* irisTargets.csv */; };
 /* End PBXBuildFile section */
@@ -96,6 +95,8 @@
 				F3C018F51DCE427900062459 /* Common.h */,
 				F3C018F41DCE427900062459 /* CLManager.h */,
 				F3C018F31DCE427900062459 /* CLManager.c */,
+				F3D44FCE1E3A366E00FD6DC9 /* CLNet.h */,
+				F3D44FCD1E3A366E00FD6DC9 /* CLNet.c */,
 				F33124EC1DCF35880009950C /* CLAnn.h */,
 				F33124EB1DCF35880009950C /* CLAnn.c */,
 				F3C018F81DCE45F200062459 /* CLMatrix.h */,
@@ -108,8 +109,6 @@
 				F3B7EF0A1DD330CF0046EC7C /* CLBenchmark.c */,
 				F32338151E12C6F3007E915D /* csvparser.h */,
 				F32338141E12C6F3007E915D /* csvparser.c */,
-				F3D44FCE1E3A366E00FD6DC9 /* CLNet.h */,
-				F3D44FCD1E3A366E00FD6DC9 /* CLNet.c */,
 				F38745201E4240C700DB26BF /* libclBLAS.2.11.0.dylib */,
 				F3FCDD7E1E42186F00FEA0E9 /* irisInputs.csv */,
 				F3FCDD7F1E42186F00FEA0E9 /* irisTargets.csv */,
@@ -173,13 +172,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F33124ED1DCF35880009950C /* CLAnn.c in Sources */,
+				F31E63871E438E4C00CC2512 /* CLNet.c in Sources */,
 				F3C018F61DCE427900062459 /* CLManager.c in Sources */,
 				F3B7EF0C1DD330CF0046EC7C /* CLBenchmark.c in Sources */,
 				F3413CEE1DD1F1D7006BC6BB /* CLRandom.c in Sources */,
 				F3C018ED1DCE423400062459 /* main.c in Sources */,
 				F3C018F91DCE45F200062459 /* CLMatrix.c in Sources */,
-				F3D44FCF1E3A366E00FD6DC9 /* CLNet.c in Sources */,
 				F32338161E12C6F3007E915D /* csvparser.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

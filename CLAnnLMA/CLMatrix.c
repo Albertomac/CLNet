@@ -21,7 +21,7 @@ void CLMatrixInit(CLMatrix * matrix, CLUInt rows, CLUInt columns, CLStringConst 
 	matrix->rows = rows;
 	matrix->columns = columns;
 	matrix->elements = matrix->rows * matrix->columns;
-	matrix->size = sizeof(CLFloat) * matrix->elements;
+	matrix->size = sizeof(CLNetDataType) * matrix->elements;
 	matrix->offsetMem = 0;
 
 	matrix->values = malloc(matrix->size);
@@ -35,7 +35,7 @@ void CLMatrixInitWithCLMem(CLMatrix * matrix, CLMem mem, CLUInt rows, CLUInt col
 	matrix->mem = mem;
 }
 
-void CLMatrixInitWithValues(CLMatrix * matrix, CLFloat * values, CLUInt rows, CLUInt columns, CLUInt copyValues, CLStringConst name)
+void CLMatrixInitWithValues(CLMatrix * matrix, CLNetDataType * values, CLUInt rows, CLUInt columns, CLUInt copyValues, CLStringConst name)
 {
 	if (copyValues) {
 		CLMatrixInit(matrix, rows, columns, name);
@@ -45,7 +45,7 @@ void CLMatrixInitWithValues(CLMatrix * matrix, CLFloat * values, CLUInt rows, CL
 		strcpy(matrix->name, name);		matrix->rows = rows;
 		matrix->columns = columns;
 		matrix->elements = matrix->rows * matrix->columns;
-		matrix->size = sizeof(CLFloat) * matrix->elements;
+		matrix->size = sizeof(CLNetDataType) * matrix->elements;
 
 		matrix->values = values;
 
@@ -76,7 +76,7 @@ void CLMatrixInitWithCSV(CLMatrix * matrix, CLStringConst file)
 	matrix->rows = atoi(headerFields[1]);
 	matrix->columns = atoi(headerFields[2]);
 	matrix->elements = matrix->rows * matrix->columns;
-	matrix->size = sizeof(CLFloat) * matrix->elements;
+	matrix->size = sizeof(CLNetDataType) * matrix->elements;
 	matrix->offsetMem = 0;
 
 	CLUInt index = 0;
@@ -115,14 +115,14 @@ void CLMatrixFillRandom(CLMatrix * matrix)
 	}
 }
 
-void CLMatrixFillValue(CLMatrix * matrix, CLFloat value)
+void CLMatrixFillValue(CLMatrix * matrix, CLNetDataType value)
 {
 	for (CLUInt i = 0; i < matrix->elements; ++i) {
 		matrix->values[i] = value;
 	}
 }
 
-void CLMatrixUpdateValues(CLMatrix * matrix, const CLFloat * newValues)
+void CLMatrixUpdateValues(CLMatrix * matrix, const CLNetDataType * newValues)
 {
 	for (CLUInt i = 0; i < matrix->elements; ++i) {
 		matrix->values[i] = newValues[i];
@@ -131,11 +131,11 @@ void CLMatrixUpdateValues(CLMatrix * matrix, const CLFloat * newValues)
 
 void CLMatrixNormalize(CLMatrix * matrix)
 {
-//	CLFloat min = matrix->values[0];
-//	CLFloat max = matrix->values[0];
+//	CLNetDataType min = matrix->values[0];
+//	CLNetDataType max = matrix->values[0];
 //
 //	for (CLUInt i = 0; i < matrix->elements; ++i) {
-//		CLFloat val = matrix->values[i];
+//		CLNetDataType val = matrix->values[i];
 //		if (val > max) {
 //			max	= val;
 //		}
@@ -146,16 +146,16 @@ void CLMatrixNormalize(CLMatrix * matrix)
 //	}
 //
 //	// y_norm = (y - y_min) / (y_max - y_min)
-//	CLFloat denom = max - min;
+//	CLNetDataType denom = max - min;
 //
 //	for (CLUInt i = 0; i < matrix->elements; ++i) {
-//		CLFloat val = matrix->values[i];
+//		CLNetDataType val = matrix->values[i];
 //		matrix->values[i] = (val - min) / denom;
 //	}
 
-	CLFloat max = fabs(matrix->values[0]);
+	CLNetDataType max = fabs(matrix->values[0]);
 	for (CLUInt i = 1 ; i < matrix->elements; ++i) {
-		CLFloat val = matrix->values[i];
+		CLNetDataType val = matrix->values[i];
 		if (fabs(val) > max) {
 			max = fabs(val);
 		}
@@ -168,12 +168,14 @@ void CLMatrixNormalize(CLMatrix * matrix)
 
 void CLMatrixCreateMem(CLMatrix * matrix, CLContext context, CLMemFlags flags)
 {
-	matrix->mem = CLCreateBuffer(context, flags, matrix->size, matrix->name);
+	if (matrix->elements > 0)
+		matrix->mem = CLCreateBuffer(context, flags, matrix->size, matrix->name);
 }
 
 void CLMatrixCreateMemHostVar(CLMatrix * matrix, CLContext context, CLMemFlags flags)
 {
-	matrix->mem = CLCreateBufferHostVar(context, flags, matrix->size, matrix->values, matrix->name);
+	if (matrix->elements > 0)
+		matrix->mem = CLCreateBufferHostVar(context, flags, matrix->size, matrix->values, matrix->name);
 }
 
 void CLMatrixUpdateValuesFromMem(CLMatrix * matrix, CLQueue queue)
@@ -181,27 +183,23 @@ void CLMatrixUpdateValuesFromMem(CLMatrix * matrix, CLQueue queue)
 	matrix->values = CLEnqueueReadBuffer(queue, matrix->mem, matrix->size, matrix->name);
 }
 
-CLMatrix * CLMatrixMultiply(CLMatrix * A, CLMatrix * B, CLMatrixTranspose aTranspose, CLMatrixTranspose bTranspose)
+void CLMatrixMultiply(CLMatrix * A, CLMatrix * B, CLMatrix * C, CLMatrixTranspose aTranspose, CLMatrixTranspose bTranspose)
 {
 	CLUInt aRows = (aTranspose == CLMatrixTrans) ? A->columns : A->rows;
 	CLUInt aColumns = (aTranspose == CLMatrixTrans) ? A->rows : A->columns;
 	CLUInt bColumns = (bTranspose == CLMatrixTrans) ? B->rows : B->columns;
 
-	CLMatrix * C = malloc(sizeof(CLMatrix));
-	CLMatrixInit(C, aRows, bColumns, "C");
-
 	for (CLUInt i = 0; i < aRows; ++i) {
 		for (CLUInt j = 0; j < bColumns; ++j) {
 			CLDouble sum = 0.0;
 			for (CLUInt k = 0; k < aColumns; ++k) {
-				CLFloat a = A->values[i * aColumns + k];
-				CLFloat b = B->values[k * bColumns + j];
+				CLNetDataType a = A->values[i * aColumns + k];
+				CLNetDataType b = B->values[k * bColumns + j];
 				sum += a * b;
 			}
 			C->values[i * bColumns + j] = sum;
 		}
 	}
-	return C;
 }
 
 CLUInt CLMatrixCompare(CLMatrix * A, CLMatrix * B)
@@ -240,17 +238,10 @@ void CLMatrixPrintStats(CLMatrix * matrix)
 	printf("%s: %d x %d = %d - %zu\n", matrix->name, matrix->rows, matrix->columns, matrix->elements, matrix->size);
 }
 
-void CLMatrixReleaseMem(CLMatrix * matrix)
-{
-	if (matrix->mem != NULL) {
-		CLReleaseMemObject(matrix->mem, matrix->name);
-		matrix->mem = NULL;
-	}
-}
-
 void CLMatrixRelease(CLMatrix * matrix)
 {
 	CLReleaseMemObject(matrix->mem, matrix->name);
+	matrix->mem = NULL;
 	free(matrix->name);
 	matrix->name = NULL;
 	free(matrix->values);

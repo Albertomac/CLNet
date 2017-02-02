@@ -6,40 +6,40 @@
 //#define activationFunction(e) (1.0f / (1.0f + exp(-e)))
 //#define activationFunction(e) (2.0f/(1.0f + exp(-2.0f * e))-1.0f)
 
-__kernel void clean(__global float * array, uint elements)
+__kernel void arrayMemSet(__global CLNetDataType * array, uint elements, CLNetDataType value)
 {
 	const uint id = get_global_id(0);
 	if (id < elements) {
-		array[id] = 0.0f;
+		array[id] = value;
 	}
 }
 
-__kernel void activationSigmoid(__global float * matrix, uint rows, uint columns)
+__kernel void activationSigmoid(__global CLNetDataType * matrix, uint rows, uint columns)
 {
 	uint x = get_global_id(0);
 	uint y = get_global_id(1);
 
-	if (x < columns && y < rows)
-		matrix[y * columns + x] = 1.0f / (1.0f + exp(- matrix[y * columns + x]));
+	if (x < rows && y < columns)
+		matrix[x * columns + y] = 1 / (1 + exp(- matrix[x * columns + y]));
 }
 
-__kernel void activationTansig(__global float * matrix, uint rows, uint columns)
+__kernel void activationTansig(__global CLNetDataType * matrix, uint rows, uint columns)
 {
     uint x = get_global_id(0);
     uint y = get_global_id(1);
 
-    if (x < columns && y < rows)
-		matrix[y * columns + x] = 2.0f / (1.0f + exp(-2.0f * matrix[y * columns + x])) - 1.0f;
+    if (x < rows && y < columns)
+		matrix[x * columns + y] = 2 / (1 + exp(-2 * matrix[x * columns + y])) - 1;
 }
 
-__kernel void activationRadbas(__global float * matrix, uint rows, uint columns)
+__kernel void activationRadbas(__global CLNetDataType * matrix, uint rows, uint columns)
 {
 	uint x = get_global_id(0);
 	uint y = get_global_id(1);
 
-	if (x < columns && y < rows) {
-		float val = matrix[y * columns + x];
-		matrix[y * columns + x] = exp(-(val * val));
+	if (x < rows && y < columns) {
+		CLNetDataType val = matrix[x * columns + y];
+		matrix[x * columns + y] = exp(-(val * val));
 	}
 }
 

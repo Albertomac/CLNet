@@ -1,97 +1,108 @@
-////
-////  CLNet.h
-////  CLAnnLMA
-////
-////  Created by Albertomac on 1/26/17.
-////  Copyright © 2017 Albertomac. All rights reserved.
-////
 //
-//#ifndef CLNet_h
-//#define CLNet_h
+//  CLNet.h
+//  CLAnnLMA
 //
-//#include <stdio.h>
-//#include "CLManager.h"
-//#include "CLMatrix.h"
+//  Created by Albertomac on 1/26/17.
+//  Copyright © 2017 Albertomac. All rights reserved.
 //
-//#pragma mark CLDeviceContext
-//
-//typedef struct {
-//
-//	CLPlatform platform;
-//	CLDevice device;
-//	CLContext context;
-//	CLQueue queue;
-//	CLProgram program;
-//
-//	CLKernel kernelMemset;
-//	CLKernel * kernelActivation;
-//	CLKernel kernelChiSquared;
-//	CLKernel kernelChiSquaredReduce;
-//	CLKernel kernelJacobian;
-//	CLKernel kernelDelta;
-//	CLKernel kernelCholeskyDecomposition;
-//
-//} CLDeviceContext;
-//
-//void CLDeviceContextInit(CLDeviceContext * devContext, CLPlatform platform, CLDevice device);
-//
-//
-//#pragma mark CLNet
-//
-//typedef enum CLActivation_ {
-//	CLActivationLinear,
-//	CLActivationSigmoid,
-//	CLActivationTansig,
-//	CLActivationRadbas
-//} CLActivation;
-//
-//typedef struct {
-//
-//	CLString name;
-//	CLUInt nTotalPatterns;
-//	CLUInt nTrainingPatterns;
-//	CLUInt nTestPatterns;
-//	CLUInt nInputs;
-//	CLUInt nHiddenLayers;
-//	CLUInt * nNeuronsPerHiddenLayer;
-//	CLActivation * activationFunctionPerLayer;
-//	CLUInt nTargets;
-//
-//	CLMatrix * tests;
-//	CLMatrix * inputs;
-//	CLMatrix * weights;
-//	CLMatrix ** hiddenActivations;
-//	CLMatrix * outputs;
-//	CLMatrix * targets;
-//
-//	CLUInt nLayers;
-//	CLMatrix ** layers;
-//
-//	CLMatrix * jacobian;
-//	CLMatrix * hessian;
-//	CLMatrix * delta;
-//	CLMatrix * cholesky;
-//	CLBool ill;
-//
-//	CLBool verbose;
-//	CLUInt maxIterations;
-//	CLFloat initialLambda;
-//	CLFloat upFactor;
-//	CLFloat downFactor;
-//	CLFloat targetDeltaError;
-//	CLFloat finalError;
-//	CLFloat finalDeltaError;
-//
-//} CLNet;
-//
-//void CLNetInit(CLNet * net, CLUInt nTotalPatterns, CLUInt nInputs, CLFloat * inputs, CLUInt nHiddenLayers, CLUInt * nNeuronsPerHiddenLayer, CLActivation * activationFunctionPerLayer, CLFloat * weights, CLUInt nTargets, CLFloat * targets, CLStringConst name, CLBool shufflePattners, CLUInt nTestPatterns);
-//
+
+#ifndef CLNet_h
+#define CLNet_h
+
+#include <stdio.h>
+#include "CLManager.h"
+#include "CLMatrix.h"
+
+#pragma mark CLDeviceContext
+
+typedef struct {
+
+	CLPlatform platform;
+	CLDevice device;
+	CLContext context;
+	CLQueue queue;
+	CLProgram program;
+
+	CLKernel kernelMemSet;
+	CLKernel * kernelsActivation;
+	CLKernel kernelChiSquared;
+	CLKernel kernelChiSquaredReduce;
+	CLKernel kernelJacobian;
+	CLKernel kernelDelta;
+	CLKernel kernelCholeskyDecomposition;
+
+} CLDeviceContext;
+
+void CLDeviceContextInit(CLDeviceContext * devContext, CLPlatform platform, CLDevice device);
+
+
+#pragma mark CLNet
+
+typedef enum CLActivation_ {
+	CLActivationLinear,
+	CLActivationSigmoid,
+	CLActivationTansig,
+	CLActivationRadbas,
+	//TODO: programmarlo se viene facile
+	//CLActivationPerceptron
+} CLActivation;
+
+typedef struct {
+
+	CLString name;
+	CLUInt nPatterns;
+	CLUInt nInputs;
+	CLUInt nLayers;
+	CLUInt * neuronsPerLayer;
+	CLActivation * activationFunctionPerLayer;
+	CLUInt nTargets;
+
+	CLUInt nTestPatterns;
+	CLUInt nTrainingPatterns;
+	CLUInt nWeights;
+	CLNetDataType * p;
+	CLNetDataType * w;
+	CLNetDataType * t;
+
+	CLMatrix * testPatterns;
+	CLMatrix * trainingPatterns;
+	CLMatrix * weights;
+	CLMatrix * weightsTemp;
+	CLMatrix ** weightsPerLayer;
+	CLMatrix ** activationPerLayer;
+	CLMatrix * targets;
+
+	CLBool partialJacobianFilled;
+	CLMatrix * jacobian;
+	CLMatrix * hessian;
+	CLMatrix * d;
+	CLMatrix * delta;
+	CLMatrix * cholesky;
+	CLBool ill;
+	CLMem illMem;
+
+	CLBool verbose;
+	CLUInt maxIterations;
+	CLNetDataType initialLambda;
+	CLNetDataType upFactor;
+	CLNetDataType downFactor;
+	CLNetDataType targetDeltaError;
+	CLNetDataType finalError;
+	CLNetDataType finalDeltaError;
+
+} CLNet;
+
+void CLNetInit(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * patterns,
+			   CLUInt nLayers, CLUInt * neuronsPerLayer, CLActivation * activationFunctionPerLayer,
+			   CLUInt nTargets, CLNetDataType * targets,
+			   CLStringConst name, CLBool shufflePattners, CLUInt nTestPatterns);
+
 //void CLNetInitWithFile(CLNet * net, CLStringConst fileName);
-//
-//void CLNetTrainWithDeviceContext(CLNet * net, CLDeviceContext * devContext);
-//
-//void CLNetPrintResultsWithInputs(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLFloat * inputs);
-//
-//void CLNetRelease(CLNet * net);
-//
-//#endif /* CLNet_h */
+
+void CLNetTrainWithDeviceContext(CLNet * net, CLDeviceContext * devContext);
+
+//void CLNetPrintResultsWithInputs(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * inputs);
+
+void CLNetRelease(CLNet * net);
+
+#endif /* CLNet_h */

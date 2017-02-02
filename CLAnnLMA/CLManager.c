@@ -119,6 +119,10 @@ void CLPrintStats(CLEvent start, CLEvent finish, CLUInt operations, CLStringCons
 
 CLFloat timeBetweenEventsNS(CLEvent start, CLEvent finish)
 {
+	if (start == NULL || finish == NULL) {
+		return 0.0f;
+	}
+
 	CLULong timeStart, timeEnd;
 	clGetEventProfilingInfo(start, CL_PROFILING_COMMAND_START, sizeof(timeStart), &timeStart, NULL);
 	clGetEventProfilingInfo(finish, CL_PROFILING_COMMAND_END, sizeof(timeEnd), &timeEnd, NULL);
@@ -399,6 +403,10 @@ void CLReleaseKernel(CLKernel kernel, CLStringConst name)
 
 void CLReleaseMemObject(CLMem var, CLStringConst name)
 {
+	if (var == NULL) {
+		fprintf(stderr, "Trying to free a NULL CLMem: %s\n", name);
+		return;
+	}
 	CLInt error;
 	error = clReleaseMemObject(var);
 	CLErrorCheck(error, "clReleaseMemObject", name, CHECK_NOT_EXIT);
@@ -406,6 +414,11 @@ void CLReleaseMemObject(CLMem var, CLStringConst name)
 
 void CLReleaseEvent(CLEvent event, CLStringConst name)
 {
+	if (event == NULL) {
+		fprintf(stderr, "Trying to free a NULL CLEvent: %s\n", name);
+		return;
+	}
+
 	CLInt error;
 	error = clReleaseEvent(event);
 	CLErrorCheck(error, "clReleaseEvent", name, CHECK_NOT_EXIT);

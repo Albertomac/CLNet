@@ -6,6 +6,17 @@
 //  Copyright © 2016 Albertomac. All rights reserved.
 //
 
+#define DEBUG_TOTAL CLFalse
+
+#define DEBUG_FORWARD					DEBUG_TOTAL && CLFalse
+#define DEBUG_CHI_SQUARED				DEBUG_TOTAL && CLFalse
+#define DEBUG_JACOBIAN					DEBUG_TOTAL && CLTrue
+#define DEBUG_HESSIAN					DEBUG_TOTAL && CLTrue
+#define DEBUG_DELTA						DEBUG_TOTAL && CLTrue
+#define DEBUG_CHOLESKY_DECOMPOSITION	DEBUG_TOTAL && CLTrue
+#define DEBUG_CHOLESKY_SOLVE			DEBUG_TOTAL && CLTrue
+#define DEBUG_UPDATE_WEIGHTS			DEBUG_TOTAL && CLTrue
+
 #include "CLAnn.h"
 #include <math.h>
 

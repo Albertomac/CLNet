@@ -26,14 +26,14 @@ typedef struct {
 	CLUInt columns;
 	CLUInt elements;
 	CLSize size;
-	CLFloat * values;
+	CLNetDataType * values;
 
 } CLMatrix;
 
 //Init
 void CLMatrixInit(CLMatrix * matrix, CLUInt rows, CLUInt columns, CLStringConst name);
 void CLMatrixInitWithCLMem(CLMatrix * matrix, CLMem mem, CLUInt rows, CLUInt columns, CLStringConst name);
-void CLMatrixInitWithValues(CLMatrix * matrix, CLFloat * values, CLUInt rows, CLUInt columns, CLUInt copyValues, CLStringConst name);
+void CLMatrixInitWithValues(CLMatrix * matrix, CLNetDataType * values, CLUInt rows, CLUInt columns, CLUInt copyValues, CLStringConst name);
 
 //CSV
 void CLMatrixInitWithCSV(CLMatrix * matrix, CLStringConst file);
@@ -41,8 +41,8 @@ void CLMatrixSaveCSV(CLMatrix * matrix, CLStringConst file);
 
 //Values
 void CLMatrixFillRandom(CLMatrix * matrix);
-void CLMatrixFillValue(CLMatrix * matrix, CLFloat value);
-void CLMatrixUpdateValues(CLMatrix * matrix, const CLFloat * newValues);
+void CLMatrixFillValue(CLMatrix * matrix, CLNetDataType value);
+void CLMatrixUpdateValues(CLMatrix * matrix, const CLNetDataType * newValues);
 void CLMatrixNormalize(CLMatrix * matrix);
 
 //CLMem
@@ -51,7 +51,7 @@ void CLMatrixCreateMemHostVar(CLMatrix * matrix, CLContext context, CLMemFlags f
 void CLMatrixUpdateValuesFromMem(CLMatrix * matrix, CLQueue queue);
 
 //Operations
-CLMatrix * CLMatrixMultiply(CLMatrix * A, CLMatrix * B, CLMatrixTranspose aTranspose, CLMatrixTranspose bTranspose);
+void CLMatrixMultiply(CLMatrix * A, CLMatrix * B, CLMatrix * C, CLMatrixTranspose aTranspose, CLMatrixTranspose bTranspose);
 CLUInt CLMatrixCompare(CLMatrix * A, CLMatrix * B);
 
 //Useful stuffs
@@ -59,7 +59,6 @@ void CLMatrixPrint(CLMatrix * matrix, CLMatrixTranspose transpose);
 void CLMatrixPrintStats(CLMatrix * matrix);
 
 //Release
-void CLMatrixReleaseMem(CLMatrix * matrix);
 void CLMatrixRelease(CLMatrix * matrix);
 
 #endif /* CLMatrix_h */
