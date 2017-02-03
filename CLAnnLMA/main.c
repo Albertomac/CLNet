@@ -44,12 +44,13 @@ CLNetDataType poly(CLNetDataType a, CLNetDataType b)
 
 void setupNetForXOR(CLNet * net)
 {
-	CLString name = "XOR";
-	CLUInt nPattern = 4;
+	CLString name = "TEST";
+	CLUInt nPatterns = 4;
 	CLUInt nInputs = 2;
 	CLUInt nLayers = 2;
 	CLUInt nTargets = 1;
-	CLUInt neuronsPerLayer[] = {12, nTargets};
+
+	CLUInt neuronsPerLayer[] = {10, nTargets};
 	CLActivation activationFunctionPerLayer[] = {CLActivationTansig, CLActivationLinear};
 
 
@@ -63,10 +64,10 @@ void setupNetForXOR(CLNet * net)
 		1.0,
 		0.0};
 
-	CLNetInit(net, nPattern, nInputs, _inputs,
+	CLNetInit(net, nPatterns, nInputs, _inputs,
 			  nLayers, neuronsPerLayer, activationFunctionPerLayer,
 			  nTargets, _targets,
-			  name, CLTrue, 0);
+			  name, CLFalse, 0);
 
 	//	float _weights[] = {-2.945651,  3.838210,  0.744880, -0.536410,  6.317570,  4.007711,  2.186176,  4.534352, -0.412075,  0.093408,
 	//		6.255346,  3.802628, -0.179818,  1.505547, -2.968742,  3.895006, -0.920345,  4.484747,  1.136460,  0.448697,
@@ -97,21 +98,21 @@ void setupTEST(CLNet * net)
 	CLUInt _nTargets = nPatterns * nTargets;
 	CLNetDataType * _targets = calloc(_nTargets, sizeof(CLNetDataType));
 
-	FILE * pFile = fopen("/Users/Albertomac/Documents/MATLAB/patterns.txt", "r");
+	FILE * pFile = fopen("/Volumes/RamDisk/TESTForward/patterns.txt", "r");
 	for (CLUInt i = 0; i < _nInputs; ++i) {
-		fscanf(pFile, "%f", &_inputs[i]);
+		fscanf(pFile, CLNetDataTypeScanf, &_inputs[i]);
 	}
 	fclose(pFile);
 
-	FILE * wFile = fopen("/Users/Albertomac/Documents/MATLAB/weights.txt", "r");
+	FILE * wFile = fopen("/Volumes/RamDisk/TESTForward/weights.txt", "r");
 	for (CLUInt i = 0; i < _nWeights; ++i) {
-		fscanf(wFile, "%f", &_weights[i]);
+		fscanf(wFile, CLNetDataTypeScanf, &_weights[i]);
 	}
 	fclose(wFile);
 
-	FILE * oFile = fopen("/Users/Albertomac/Documents/MATLAB/output.txt", "r");
+	FILE * oFile = fopen("/Volumes/RamDisk/TESTForward/targets.txt", "r");
 	for (CLUInt i = 0; i < _nTargets; ++i) {
-		fscanf(oFile, "%f", &_targets[i]);
+		fscanf(oFile, CLNetDataTypeScanf, &_targets[i]);
 	}
 	fclose(oFile);
 
@@ -136,7 +137,7 @@ int main(int argc, const char * argv[]) {
 	CLDeviceContextInit(devContext, platform, device);
 
 	CLNet * net = malloc(sizeof(CLNet));
-	setupTEST(net);
+	setupNetForXOR(net);
 
 	CLNetTrainWithDeviceContext(net, devContext);
 

@@ -67,10 +67,22 @@ do { if (DEBUG_LOG) fprintf(stderr, fmt, __VA_ARGS__); } while (0)
 
 #if CLNetPrecisionDouble
 	#define CLNetDataType CLDouble
+	#define CLNetDataTypeScanf "%lf"
 	#define CLFTollerance 1.0e-10
+
+	#define GEMM clblasDgemm
+	#define TRSV clblasDtrsv
+	#define AXPY clblasDaxpy
+
 #else
+
 	#define CLNetDataType CLFloat
+	#define CLNetDataTypeScanf "%f"
 	#define CLFTollerance 1.0e-5
+
+	#define GEMM clblasSgemm
+	#define TRSV clblasStrsv
+	#define AXPY clblasSaxpy
 #endif
 
 

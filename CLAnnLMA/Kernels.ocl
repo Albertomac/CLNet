@@ -2,11 +2,7 @@
 #define FALSE 0
 #define DEBUG TRUE
 
-//#define activationFunction(e) e
-//#define activationFunction(e) (1.0f / (1.0f + exp(-e)))
-//#define activationFunction(e) (2.0f/(1.0f + exp(-2.0f * e))-1.0f)
-
-__kernel void arrayMemSet(__global CLNetDataType * array, uint elements, CLNetDataType value)
+__kernel void arrayMemSet(__global CLNetDataType * restrict array, uint elements, CLNetDataType value)
 {
 	const uint id = get_global_id(0);
 	if (id < elements) {
@@ -14,7 +10,9 @@ __kernel void arrayMemSet(__global CLNetDataType * array, uint elements, CLNetDa
 	}
 }
 
-__kernel void activationSigmoid(__global CLNetDataType * matrix, uint rows, uint columns)
+
+//Activations
+__kernel void activationSigmoid(__global CLNetDataType * restrict matrix, uint rows, uint columns)
 {
 	uint x = get_global_id(0);
 	uint y = get_global_id(1);
@@ -23,7 +21,7 @@ __kernel void activationSigmoid(__global CLNetDataType * matrix, uint rows, uint
 		matrix[x * columns + y] = 1 / (1 + exp(- matrix[x * columns + y]));
 }
 
-__kernel void activationTansig(__global CLNetDataType * matrix, uint rows, uint columns)
+__kernel void activationTansig(__global CLNetDataType * restrict matrix, uint rows, uint columns)
 {
     uint x = get_global_id(0);
     uint y = get_global_id(1);
@@ -32,7 +30,7 @@ __kernel void activationTansig(__global CLNetDataType * matrix, uint rows, uint 
 		matrix[x * columns + y] = 2 / (1 + exp(-2 * matrix[x * columns + y])) - 1;
 }
 
-__kernel void activationRadbas(__global CLNetDataType * matrix, uint rows, uint columns)
+__kernel void activationRadbas(__global CLNetDataType * restrict matrix, uint rows, uint columns)
 {
 	uint x = get_global_id(0);
 	uint y = get_global_id(1);
@@ -43,9 +41,9 @@ __kernel void activationRadbas(__global CLNetDataType * matrix, uint rows, uint 
 	}
 }
 
-//Chi Squared
 
-static void inline reduceInline(uint localId, __global float * partialSums, __local float * localSums)
+//Chi Squared
+static void inline reduceInline(uint localId, __global CLNetDataType * restrict partialSums, __local CLNetDataType * localSums)
 {
 	for (uint stride = get_local_size(0) / 2; stride > 0; stride /= 2) {
 		barrier(CLK_LOCAL_MEM_FENCE);
@@ -56,18 +54,17 @@ static void inline reduceInline(uint localId, __global float * partialSums, __lo
 
 	if (localId == 0) {
 		partialSums[get_group_id(0)] = localSums[0];
-
 	}
 }
 
-static float inline res(float fy, float y)
+static CLNetDataType inline res(CLNetDataType fy, CLNetDataType y)
 {
-	float r = fy - y;
+	CLNetDataType r = fy - y;
 	return r * r;
 }
 
-__kernel void chiSquared(__global const float * fy, __global const float * y,
-						 __local float * localSums, __global float * partialSums, uint n)
+__kernel void chiSquared(__global const CLNetDataType * restrict fy, __global const CLNetDataType * restrict y,
+						 __local CLNetDataType * localSums, __global CLNetDataType * restrict partialSums, uint n)
 {
 	uint globalId = get_global_id(0);
 	uint localId  = get_local_id(0);
@@ -77,15 +74,19 @@ __kernel void chiSquared(__global const float * fy, __global const float * y,
 	reduceInline(localId, partialSums, localSums);
 }
 
-__kernel void chiSquaredReduce(__global float * partialSums, __local float * localSums)
+__kernel void chiSquaredReduce(__global CLNetDataType * restrict partialSums, __local CLNetDataType * localSums)
 {
 	uint localId  = get_local_id(0);
 	localSums[localId] = partialSums[get_global_id(0)];
 	reduceInline(localId, partialSums, localSums);
 }
 
+
+
 //Jacobian
-__kernel void jacobian(__global float * jacobian, __global float * inputs, uint columnsG, uint rowsI, uint columnsI, uint offset, uint slope, uint yTimes)
+__kernel void jacobian(__global CLNetDataType * restrict jacobian,
+					   __global CLNetDataType * restrict inputs,
+					   uint columnsG, uint rowsI, uint columnsI, uint offset, uint slope, uint yTimes)
 {
 	uint x = get_global_id(0);
 	uint y = get_global_id(1);
@@ -94,7 +95,7 @@ __kernel void jacobian(__global float * jacobian, __global float * inputs, uint 
 
 		for (uint t = 0; t < yTimes; ++t) {
 
-			float value = inputs[y * columnsI + x];
+			CLNetDataType value = inputs[y * columnsI + x];
 
 			for (uint i = 0; i < slope; ++i) {
 				jacobian[(y + rowsI * t) * columnsG + x * slope + i + offset] = value;
@@ -103,12 +104,16 @@ __kernel void jacobian(__global float * jacobian, __global float * inputs, uint 
 	}
 }
 
-__kernel void delta(__global float * delta, __global float * y, __global float * f, __global float * jacobian, uint ny, uint npar)
+
+//delta
+__kernel void delta(__global CLNetDataType * restrict delta, __global CLNetDataType * restrict y, __global CLNetDataType * restrict f,
+					__global CLNetDataType * restrict jacobian,
+					uint ny, uint npar)
 {
 	uint x = get_global_id(0);
 
 	if (x < npar) {
-		float sum = 0.0f;
+		CLNetDataType sum = 0;
 		for (uint i = 0; i < ny; ++i) {
 			sum += (y[i] - f[i]) * jacobian[i * npar + x];
 		}
@@ -120,74 +125,37 @@ __kernel void delta(__global float * delta, __global float * y, __global float *
 #define a(r, c) a[(r * npar + c)]
 #define l(r, c) l[(r * npar + c)]
 
-// | l(0,0)      0      0      0 |
-// | l(1,0) l(1,1)      0      0 |
-// | l(2,0) l(2,1) l(2,2)      0 |
-// | l(3,0) l(3,1) l(3,2) l(3,3) |
-
-// | l(0,0) l(0,1) l(0,2) l(0,3) |
-// |      0 l(1,1) l(1,2) l(1,3) |
-// |      0      0 l(2,2) l(2,3) |
-// |      0      0      0 l(3,3) |
-
-//x(row, column)
-
-//l(x,x) = sqrt(a(x,x) - sum from k=0 to x-1 (l(k,x) ^ 2)
-//l(x,y) = (a(x,y) - sum from k=0 to y-1 (l(k,x) * l(k,y))) / l(x,x)
-
-/*
- 
- l(0,0) = sqrt( a(0,0) )
- l(0,1) = a(1,0) / l(0,0)
- l(0,2) = a(2,0) / l(0,0)
- l(0,3) = a(3,0) / l(0,0)
- l(0,4) = a(4,0) / l(0,0)
- 
- l(1,1) = sqrt( a(1,1) - l(1,1)^2 )
- l(1,2) =
- 
- 
- */
-
-/*
- x = row
- y = col
- k = col < y
-
- */
-
-__kernel void choleskyDecomposition(__global float * l, __global float * a, uint npar, float alpha, __global uint * ill, uint x)
+__kernel void choleskyDecomposition(__global CLNetDataType * restrict l,
+									CLNetDataType alpha, __global CLNetDataType * restrict a,
+									__global CLNetDataType * sums, uint npar, __global uint * ill, uint x)
 {
 	uint y = get_global_id(0);
+
 	if (y >= npar) {
 		return;
 	}
 
-	float sum;
-	float diag;
+	CLNetDataType diag = a(x, x) * alpha - sums[x];
 
-	a(x, x) *= alpha;
-
-	sum = a(x, x);
-	for (uint k = 0; k < x; ++k) {
-		float val = l(k, x);
-		sum -= val * val;
-	}
-	if (sum < TOL) {
+	if (diag < TOL) {
 		ill[0] = 1;
 		return;
 	}
-	diag = sqrt(sum);
 
+	diag = sqrt(diag);
 
 	if (y > x) {
-		sum = a(x, y);
+		CLNetDataType sum = a(x, y);
 		for (uint k = 0; k < x; ++k) {
 			sum -= l(k, x) * l(k, y);
 		}
-		l(x, y) = sum / diag;
+		sum /= diag;
+		l(x, y) = sum;
+		sums[y] += sum * sum;
 	}
 
-	if (y == x)
+	if (y == x) {
 		l(x, x) = diag;
+		a(x, x) *= alpha;
+	}
 }

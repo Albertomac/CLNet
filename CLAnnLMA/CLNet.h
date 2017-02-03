@@ -70,7 +70,12 @@ typedef struct {
 	CLMatrix * weightsTemp;
 	CLMatrix ** weightsPerLayer;
 	CLMatrix ** activationPerLayer;
-	CLMatrix * targets;
+	CLMatrix * outputs; //Pointer to last CLMatrix in activationPerLayer
+	CLMatrix * testTargets;
+	CLMatrix * trainingTargets;
+
+	CLMatrix * chiSquaredError;
+	CLNetDataType errorChiSquared;
 
 	CLBool partialJacobianFilled;
 	CLMatrix * jacobian;
