@@ -72,12 +72,15 @@ void CLMatrixInitWithCSV(CLMatrix * matrix, CLStringConst file)
 		fprintf(stderr, "CSV File Header error.\n");
 	}
 
+	matrix->name = malloc(sizeof(CLChar) * 1024);
 	strcpy(matrix->name, headerFields[0]);
 	matrix->rows = atoi(headerFields[1]);
 	matrix->columns = atoi(headerFields[2]);
 	matrix->elements = matrix->rows * matrix->columns;
 	matrix->size = sizeof(CLNetDataType) * matrix->elements;
 	matrix->offsetMem = 0;
+
+	matrix->values = calloc(matrix->elements, sizeof(CLNetDataType));
 
 	CLUInt index = 0;
 	while ((row = CsvParser_getRow(csvparser)) ) {
@@ -131,28 +134,6 @@ void CLMatrixUpdateValues(CLMatrix * matrix, const CLNetDataType * newValues)
 
 void CLMatrixNormalize(CLMatrix * matrix)
 {
-//	CLNetDataType min = matrix->values[0];
-//	CLNetDataType max = matrix->values[0];
-//
-//	for (CLUInt i = 0; i < matrix->elements; ++i) {
-//		CLNetDataType val = matrix->values[i];
-//		if (val > max) {
-//			max	= val;
-//		}
-//
-//		if (val < min) {
-//			min = val;
-//		}
-//	}
-//
-//	// y_norm = (y - y_min) / (y_max - y_min)
-//	CLNetDataType denom = max - min;
-//
-//	for (CLUInt i = 0; i < matrix->elements; ++i) {
-//		CLNetDataType val = matrix->values[i];
-//		matrix->values[i] = (val - min) / denom;
-//	}
-
 	CLNetDataType max = fabs(matrix->values[0]);
 	for (CLUInt i = 1 ; i < matrix->elements; ++i) {
 		CLNetDataType val = matrix->values[i];

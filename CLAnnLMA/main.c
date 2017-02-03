@@ -69,13 +69,32 @@ void setupNetForXOR(CLNet * net)
 			  nTargets, _targets,
 			  name, CLFalse, 0);
 
-	//	float _weights[] = {-2.945651,  3.838210,  0.744880, -0.536410,  6.317570,  4.007711,  2.186176,  4.534352, -0.412075,  0.093408,
-	//		6.255346,  3.802628, -0.179818,  1.505547, -2.968742,  3.895006, -0.920345,  4.484747,  1.136460,  0.448697,
-	//		-7.942422,  5.197197, -1.054466, -1.915232, -7.835067,  5.540699, -2.905327,  7.677764, -2.450965, -1.859408};
-	//	CLMatrixUpdateValues(net->weights, _weights);
-
 	fillRandom(net->w, net->nWeights);
-	//CLMatrixInitWithCSV(net->weights, "/Users/Albertomac/Desktop/irisDataSet/weights36.csv");
+}
+
+void setupNetForIris(CLNet * net)
+{
+	CLString name = "Iris";
+	CLUInt nPatterns = 150;
+	CLUInt nInputs = 4;
+	CLUInt nLayers = 3;
+	CLUInt nTargets = 3;
+
+	CLUInt nNeuronsPerLayer[] = {7, 5, nTargets};
+	CLActivation activationPerLayer[] = {CLActivationTansig, CLActivationSigmoid, CLActivationLinear};
+
+	CLMatrix * patterns = calloc(1, sizeof(CLMatrix));
+	CLMatrixInitWithCSV(patterns, "irisInputs.csv");
+	CLMatrixNormalize(patterns);
+
+	CLMatrix * targets = calloc(1, sizeof(CLMatrix));
+	CLMatrixInitWithCSV(targets, "irisTargets.csv");
+
+	CLNetInit(net, nPatterns, nInputs, patterns->values,
+			  nLayers, nNeuronsPerLayer, activationPerLayer,
+			  nTargets, targets->values,
+			  name, CLTrue, 30);
+	fillRandom(net->w, net->nWeights);
 }
 
 void setupTEST(CLNet * net)
@@ -137,205 +156,36 @@ int main(int argc, const char * argv[]) {
 	CLDeviceContextInit(devContext, platform, device);
 
 	CLNet * net = malloc(sizeof(CLNet));
-	setupNetForXOR(net);
+
+	switch (1) {
+		case 0:
+			setupNetForXOR(net);
+			break;
+
+		case 1:
+			setupNetForIris(net);
+			break;
+
+		case 2:
+			setupTEST(net);
+			break;
+
+		default:
+			break;
+	}
 
 	CLNetTrainWithDeviceContext(net, devContext);
 
-	//	printf("Would you like to save weights? [Y/N]\n");
-	//	char ans = 'N';
-	//	do {
-	//		ans = getchar();
-	//	} while (ans != 'N' && ans != 'Y' && ans != 'n' && ans != 'y');
-	//
-	//	if (ans == 'Y' || ans == 'y') CLMatrixSaveCSV(net->weights, "/Volumes/RamDisk/weights.csv");
-	
+	printf("Would you like to save weights? [Y/N]\n");
+	char ans = 'N';
+	do {
+		ans = getchar();
+	} while (ans != 'N' && ans != 'Y' && ans != 'n' && ans != 'y');
+
+	if (ans == 'Y' || ans == 'y') CLMatrixSaveCSV(net->weights, "/Volumes/RamDisk/weights.csv");
+
+//	CLMatrixSaveCSV(net->weightsTemp, "/Volumes/RamDisk/weights.csv");
 	CLNetRelease(net);
 	
 	return 0;
 }
-
-////
-////  main.c
-////  CLAnnLMA
-////
-////  Created by Albertomac on 11/5/16.
-////  Copyright © 2016 Albertomac. All rights reserved.
-////
-//
-//#include <stdio.h>
-//#include <math.h>
-//#include "CLManager.h"
-//#include "CLAnn.h"
-//#include "CLRandom.h"
-//#include "CLBenchmark.h"
-//
-//
-////OpenCL stuff
-//CLInt platformIndex = 0;
-//CLInt deviceIndex = 2;
-//CLPlatform platform;
-//CLDevice device;
-//
-//void fillRandom(CLNetDataType * values, CLUInt nValues)
-//{
-//	for(CLUInt i = 0; i < nValues; ++i) {
-//		values[i] = CLRandomValue();
-//	}
-//}
-//
-//void fillInput(CLNetDataType * values, CLUInt nValues)
-//{
-//	for (CLUInt i = 0; i < nValues; ++i) {
-//		values[i] = (CLNetDataType)i / nValues;
-//	}
-//}
-//
-//
-//CLNetDataType poly(CLNetDataType a, CLNetDataType b)
-//{
-//	return 0.1 * a + 0.2 * b - 0.1;
-//	//return cos(a);
-//
-//}
-//
-//void setupNetForXOR(CLAnn * net)
-//{
-//	CLString name = "XOR";
-//	CLUInt nPattern = 4;
-//	CLUInt nInputs = 2;
-//	CLUInt nHiddenLayers = 1;
-//	CLActivation activationPerLayer[] = {CLActivationTansig};
-//	CLUInt nNeuronsPerLayer[] = {12};
-//	CLUInt nOutputs = 1;
-//
-//	CLNetDataType _inputs[] = {0.0, 0.0,
-//		0.0, 1.0,
-//		1.0, 0.0,
-//		1.0, 1.0};
-//
-//	CLNetDataType _outputs[] = {0.0,
-//		1.0,
-//		1.0,
-//		0.0};
-//
-//	CLAnnInit(net, nPattern, nInputs, nHiddenLayers, activationPerLayer, nNeuronsPerLayer, nOutputs, name);
-//
-//	CLMatrixUpdateValues(net->inputs, _inputs);
-//	CLMatrixUpdateValues(net->targets, _outputs);
-//
-////	float _weights[] = {-2.945651,  3.838210,  0.744880, -0.536410,  6.317570,  4.007711,  2.186176,  4.534352, -0.412075,  0.093408,
-////		6.255346,  3.802628, -0.179818,  1.505547, -2.968742,  3.895006, -0.920345,  4.484747,  1.136460,  0.448697,
-////		-7.942422,  5.197197, -1.054466, -1.915232, -7.835067,  5.540699, -2.905327,  7.677764, -2.450965, -1.859408};
-////	CLMatrixUpdateValues(net->weights, _weights);
-//
-//	CLAnnUpdateWithRandomWeights(net);
-//	//CLMatrixInitWithCSV(net->weights, "/Users/Albertomac/Desktop/irisDataSet/weights36.csv");
-//}
-//
-//void setupNetForPoly(CLAnn * net)
-//{
-//	CLString name = "Poly";
-//	CLUInt nPattern = 100;
-//	CLUInt nInputs = 3;
-//	CLUInt nHiddenLayers = 1;
-//	CLActivation activationPerLayer[] = {CLActivationTansig};
-//	CLUInt nNeuronsPerLayer[] = {4};
-//	CLUInt nOutputs = 1;
-//
-//	CLNetDataType * _inputs = malloc(sizeof(CLNetDataType) * nInputs * nPattern);
-//	fillInput(_inputs, nInputs * nPattern);
-//
-//	for (CLUInt i = 0; i < nInputs * nPattern; i += nInputs) {
-//		_inputs[i] = 1;
-//	}
-//
-//	CLNetDataType * _outputs = malloc(sizeof(CLNetDataType) * nOutputs * nPattern);
-//	for(CLUInt i = 1, o = 0; i < nInputs * nPattern; i += nInputs, ++o) {
-//		_outputs[o] = poly(_inputs[i], _inputs[i+1]);
-//	}
-//
-//	CLAnnInit(net, nPattern, nInputs, nHiddenLayers, activationPerLayer, nNeuronsPerLayer, nOutputs, name);
-//
-//	CLMatrixUpdateValues(net->inputs, _inputs);
-//	CLMatrixUpdateValues(net->targets, _outputs);
-//	CLAnnUpdateWithRandomWeights(net);
-//}
-//
-//void setupNetForIris(CLAnn * net)
-//{
-//	CLString name = "Iris";
-//	CLUInt nPattern = 150;
-//	CLUInt nInputs = 4;
-//	CLUInt nHiddenLayers = 2;
-//	CLActivation activationPerLayer[] = {CLActivationRadbas, CLActivationTansig};
-//	CLUInt nNeuronsPerLayer[] = {7, 5};
-//	CLUInt nOutputs = 3;
-//
-//	CLAnnInit(net, nPattern, nInputs, nHiddenLayers, activationPerLayer, (CLUInt *)nNeuronsPerLayer, nOutputs, name);
-//
-//	CLMatrixInitWithCSV(net->inputs, "irisInputs.csv");
-//	CLMatrixInitWithCSV(net->targets, "irisTargets.csv");
-//
-//	CLMatrixNormalize(net->inputs);
-//	CLAnnShufflePatterns(net);
-//	
-//	CLAnnUpdateWithRandomWeights(net);
-//}
-//
-//void freeArray(CLNetDataType * array) {
-//	free(array);
-//	array = NULL;
-//}
-//
-//
-//int main(int argc, const char * argv[]) {
-//
-//	CLRandomSetup();
-//
-//#if BENCHMARK
-//	time_t now = time(NULL);
-//	char pathBenchmark[256];
-//	snprintf(pathBenchmark, 255, "/Volumes/Ramdisk/Benchmark-%s.csv", ctime(&now));
-//	CLBenchmarkSetup(pathBenchmark);
-//#endif
-//
-//	platform = CLSelectPlatform(platformIndex);
-//	device = CLSelectDevice(platform, deviceIndex);
-//
-//	CLAnn * net = malloc(sizeof(CLAnn));
-//
-//	switch (0) {
-//
-//		case 0:
-//			setupNetForXOR(net);
-//			break;
-//		case 1:
-//			setupNetForPoly(net);
-//			break;
-//		case 2:
-//			setupNetForIris(net);
-//			break;
-//
-//		default:
-//			break;
-//	}
-//
-//	CLAnnSetupTrainingFor(net, platform, device);
-//
-//	CLAnnTraining(net);
-//
-//	CLAnnForward(net, CLTrue, CLFalse);
-//	CLAnnPrintResults(net);
-//
-////	printf("Would you like to save weights? [Y/N]\n");
-////	char ans = 'N';
-////	do {
-////		ans = getchar();
-////	} while (ans != 'N' && ans != 'Y' && ans != 'n' && ans != 'y');
-////
-////	if (ans == 'Y' || ans == 'y') CLMatrixSaveCSV(net->weights, "/Volumes/RamDisk/weights.csv");
-//
-//	CLAnnRelease(net);
-//
-//	return 0;
-//}

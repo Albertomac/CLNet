@@ -315,7 +315,9 @@ void CLNetForward(CLNet * net, CLDeviceContext * devContext)
 
 	for (CLUInt i = 0; i < net->nLayers; ++i) {
 		CLReleaseEvent(eventsMultiply[i], "eventMultiply");
-		CLReleaseEvent(eventsActivation[i], "eventActivation");
+
+		if (net->activationFunctionPerLayer[i] != CLActivationLinear)
+			CLReleaseEvent(eventsActivation[i], "eventActivation");
 	}
 }
 
@@ -372,10 +374,11 @@ void CLNetJacobian(CLNet * net, CLDeviceContext * devContext)
 	CLSize lws[] = {BLOCK_SIZE_JACOBIAN, BLOCK_SIZE_JACOBIAN};
 	CLSize gws[] = {CLGetOptimalGlobalWorkItemsSize(net->trainingPatterns->columns, lws[0]), CLGetOptimalGlobalWorkItemsSize(net->trainingPatterns->rows, lws[1])};
 
-	CLEvent * eventsJacobian = calloc(net->nLayers, sizeof(CLEvent));
 	CLKernel kernelJacobian = devContext->kernelJacobian;
 
 	if (net->partialJacobianFilled == CLFalse) {
+
+		CLEvent eventJacobianFirst;
 
 		CLSetKernelArg(kernelJacobian, nArg++, sizeof(net->jacobian->mem), &net->jacobian->mem, net->jacobian->name);
 		CLSetKernelArg(kernelJacobian, nArg++, sizeof(net->trainingPatterns->mem), &net->trainingPatterns->mem, net->trainingPatterns->name);
@@ -386,10 +389,14 @@ void CLNetJacobian(CLNet * net, CLDeviceContext * devContext)
 		CLSetKernelArg(kernelJacobian, nArg++, sizeof(CLUInt), &slope, "slope");
 		CLSetKernelArg(kernelJacobian, nArg++, sizeof(CLUInt), &yTimes, "yTimes");
 
-		CLEnqueueNDRangeKernel(devContext->queue, kernelJacobian, workDim, NULL, gws, lws, 0, NULL, &eventsJacobian[0], "jacobian");
+		CLEnqueueNDRangeKernel(devContext->queue, kernelJacobian, workDim, NULL, gws, lws, 0, NULL, &eventJacobianFirst, "jacobianFirst");
+		CLReleaseEvent(eventJacobianFirst, "jacobianFirst");
 
 		net->partialJacobianFilled = CLTrue;
 	}
+
+
+	CLEvent * eventsJacobian = calloc(net->nLayers - 1, sizeof(CLEvent));
 
 	offset = net->trainingPatterns->columns * slope;
 
@@ -414,7 +421,7 @@ void CLNetJacobian(CLNet * net, CLDeviceContext * devContext)
 		offset += net->neuronsPerLayer[i] * slope;
 	}
 
-	for (CLUInt i = 0; i < net->nLayers; ++i) {
+	for (CLUInt i = 0; i < net->nLayers - 1; ++i) {
 		CLReleaseEvent(eventsJacobian[i], "eventsJacobian");
 	}
 }
@@ -634,7 +641,7 @@ void CLNetPrintForward(CLNet * net, CLDeviceContext * devContext)
 
 	CLFloat * errorPerc = malloc(sizeof(CLFloat) * net->nTargets);
 
-	for (CLUInt p = 0; p < net->nPatterns; ++p) {
+	for (CLUInt p = 0; p < net->nTrainingPatterns; ++p) {
 
 		for (CLUInt i = 0; i < net->nInputs; ++i) {
 			printf("%10g|", net->trainingPatterns->values[p * net->nInputs + i]);
