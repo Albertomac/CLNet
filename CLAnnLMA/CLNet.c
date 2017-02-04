@@ -18,6 +18,7 @@
 
 #define BUFFER_STRING 64
 
+#define BLOCK_SIZE_MEMSET 64
 #define BLOCK_SIZE_ACTIVATION 32
 #define BLOCK_SIZE_CHI_SQUARED 64
 #define BLOCK_SIZE_JACOBIAN 32
@@ -124,6 +125,28 @@ void shufflePatterns(CLNetDataType * p, CLNetDataType * t, CLUInt nPatterns, CLU
 	}
 }
 
+void CLNetMemSet(CLNet * net, CLDeviceContext * devContext, CLMem mem, CLUInt elements, CLNetDataType value, CLStringConst name)
+{
+	CLEvent eventMemSet;
+	CLSize lws[] = {BLOCK_SIZE_MEMSET};
+	CLSize gws[] = {CLGetOptimalGlobalWorkItemsSize(elements, lws[0])};
+
+	CLUInt nArg = 0;
+	CLKernel kernelMemSet = devContext->kernelMemSet;
+	CLSetKernelArg(kernelMemSet, nArg++, sizeof(mem), &mem, name);
+	CLSetKernelArg(kernelMemSet, nArg++, sizeof(CLUInt), &elements, "elements");
+	CLSetKernelArg(kernelMemSet, nArg++, sizeof(CLNetDataType), &value, "value");
+
+	CLEnqueueNDRangeKernel(devContext->queue, kernelMemSet, 1, 0, gws, lws, 0, NULL, &eventMemSet, kMemSet);
+	CLReleaseEvent(eventMemSet, kMemSet);
+}
+
+void CLNetMemSetMatrix(CLNet * net, CLDeviceContext * devContext, CLMatrix * matrix, CLNetDataType value)
+{
+	CLNetMemSet(net, devContext, matrix->mem, matrix->elements, value, matrix->name);
+}
+
+
 void CLNetInit(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * patterns,
 			   CLUInt nLayers, CLUInt * neuronsPerLayer, CLActivation * activationFunctionPerLayer,
 			   CLUInt nTargets, CLNetDataType * targets,
@@ -191,6 +214,9 @@ void CLNetInit(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * pa
 	net->t = calloc(net->nPatterns * net->nTargets, sizeof(CLNetDataType));
 	memcpy(net->t, targets, sizeof(CLNetDataType) * net->nPatterns * net->nTargets);
 
+	//nBiasPerLayer
+	net->nBiasPerLayer = 1;
+
 	//name
 	net->name = calloc(BUFFER_STRING, sizeof(CLChar));
 	snprintf(net->name, BUFFER_STRING - 1, "%s", name);
@@ -211,7 +237,6 @@ void CLNetInit(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * pa
 	//testPatterns
 	net->testPatterns = calloc(1, sizeof(CLMatrix));
 
-	//trainingPatterns TODO: verificare che i calloc abbiano bisogno solo del sizeof del puntatore di CLMatrix
 	net->trainingPatterns = calloc(1, sizeof(CLMatrix));
 
 	//weights
@@ -258,6 +283,9 @@ void CLNetInit(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * pa
 
 	//cholesky
 	net->cholesky = calloc(1, sizeof(CLMatrix));
+
+	//choleskySums
+	net->choleskySums = calloc(1, sizeof(CLMatrix));
 
 	//Levenberg-Marquartd stuff
 	net->ill = CLFalse;
@@ -502,18 +530,17 @@ void TESTCholeskyDecomposition(CLNet * net, CLDeviceContext * devContext)
 
 void CLNetCholeskyDecomposition(CLNet * net, CLDeviceContext * devContext, CLNetDataType mult)
 {
+	CLNetMemSetMatrix(net, devContext, net->choleskySums, 0);
+
 	CLSize lws[] = {BLOCK_SIZE_CHOLESKY_DECOMPOSITION};
 	CLSize gws[] = {CLGetOptimalGlobalWorkItemsSize(net->nWeights, lws[0])};
-
-	//TODO: da inserire nella struct CLNet per evitare di ricrearlo ogni volta
-	CLMem sums = CLCreateBuffer(devContext->context, CL_MEM_READ_WRITE, sizeof(CLNetDataType) * net->cholesky->columns, "sums");
 
 	CLUInt nArg = 0;
 	CLKernel kernelCholeskyDecomposition = devContext->kernelCholeskyDecomposition;
 	CLSetKernelArg(kernelCholeskyDecomposition, nArg++, sizeof(net->cholesky->mem), &net->cholesky->mem, net->cholesky->name);
 	CLSetKernelArg(kernelCholeskyDecomposition, nArg++, sizeof(CLNetDataType), &mult, "alpha");
 	CLSetKernelArg(kernelCholeskyDecomposition, nArg++, sizeof(net->hessian->mem), &net->hessian->mem, net->hessian->name);
-	CLSetKernelArg(kernelCholeskyDecomposition, nArg++, sizeof(sums), &sums, "sums");
+	CLSetKernelArg(kernelCholeskyDecomposition, nArg++, sizeof(net->choleskySums->mem), &net->choleskySums->mem, net->choleskySums->name);
 	CLSetKernelArg(kernelCholeskyDecomposition, nArg++, sizeof(CLUInt), &net->nWeights, "npar");
 	CLSetKernelArg(kernelCholeskyDecomposition, nArg++, sizeof(net->illMem), &net->illMem, "ill");
 
@@ -532,8 +559,6 @@ void CLNetCholeskyDecomposition(CLNet * net, CLDeviceContext * devContext, CLNet
 	for (CLUInt i = 0; i < net->cholesky->rows; ++i) {
 		CLReleaseEvent(eventCholeskyDecomposition[i], "eventCholeskyDecomposition");
 	}
-
-	CLReleaseMemObject(sums, "sums");
 }
 
 
@@ -780,6 +805,10 @@ void CLNetTrainWithDeviceContext(CLNet * net, CLDeviceContext * devContext)
 	CLMatrixInit(net->cholesky, net->nWeights, net->nWeights, "cholesky");
 	CLMatrixCreateMem(net->cholesky, devContext->context, CL_MEM_READ_WRITE);
 
+	//choleskySums
+	CLMatrixInit(net->choleskySums, 1, net->nWeights, "choleskySums");
+	CLMatrixCreateMem(net->choleskySums, devContext->context, CL_MEM_READ_WRITE);
+
 	//ill & illMem
 	net->ill = CLFalse;
 	net->illMem = CLCreateBuffer(devContext->context, CL_MEM_READ_WRITE, sizeof(CLNetDataType), "illMem");
@@ -845,6 +874,7 @@ void CLNetRelease(CLNet * net)
 	CLMatrixRelease(net->d);
 	CLMatrixRelease(net->delta);
 	CLMatrixRelease(net->cholesky);
+	CLMatrixRelease(net->choleskySums);
 
 	CLReleaseMemObject(net->illMem, "illMem");
 

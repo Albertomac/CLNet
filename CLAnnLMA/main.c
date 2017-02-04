@@ -186,7 +186,7 @@ int main(int argc, const char * argv[]) {
 
 	CLNet * net = malloc(sizeof(CLNet));
 
-	switch (1) {
+	switch (0) {
 		case 0:
 			setupNetForXOR(net);
 			break;

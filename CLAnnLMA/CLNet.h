@@ -56,6 +56,7 @@ typedef struct {
 	CLUInt * neuronsPerLayer;
 	CLActivation * activationFunctionPerLayer;
 	CLUInt nTargets;
+	CLUInt nBiasPerLayer;
 
 	CLUInt nTestPatterns;
 	CLUInt nTrainingPatterns;
@@ -83,6 +84,7 @@ typedef struct {
 	CLMatrix * d;
 	CLMatrix * delta;
 	CLMatrix * cholesky;
+	CLMatrix * choleskySums;
 	CLBool ill;
 	CLMem illMem;
 
