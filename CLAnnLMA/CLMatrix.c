@@ -14,9 +14,11 @@
 #include "CLRandom.h"
 #include "csvparser.h"
 
+#define BUFFER_STRING 128
+
 void CLMatrixInit(CLMatrix * matrix, CLUInt rows, CLUInt columns, CLStringConst name)
 {
-	matrix->name = malloc(sizeof(CLChar) * 1024);
+	matrix->name = calloc(BUFFER_STRING, sizeof(CLChar));
 	strcpy(matrix->name, name);
 	matrix->rows = rows;
 	matrix->columns = columns;
@@ -24,7 +26,7 @@ void CLMatrixInit(CLMatrix * matrix, CLUInt rows, CLUInt columns, CLStringConst 
 	matrix->size = sizeof(CLNetDataType) * matrix->elements;
 	matrix->offsetMem = 0;
 
-	matrix->values = malloc(matrix->size);
+	matrix->values = calloc(matrix->elements, sizeof(CLNetDataType));
 	CLMatrixFillValue(matrix, 0.0f);
 }
 
@@ -40,15 +42,15 @@ void CLMatrixInitWithValues(CLMatrix * matrix, CLNetDataType * values, CLUInt ro
 	if (copyValues) {
 		CLMatrixInit(matrix, rows, columns, name);
 		memcpy(matrix->values, values, matrix->size);
+
 	} else {
-		matrix->name = malloc(sizeof(CLChar) * 1024);
+		matrix->name = calloc(BUFFER_STRING, sizeof(CLChar));
 		strcpy(matrix->name, name);		matrix->rows = rows;
 		matrix->columns = columns;
 		matrix->elements = matrix->rows * matrix->columns;
 		matrix->size = sizeof(CLNetDataType) * matrix->elements;
 
 		matrix->values = values;
-
 		matrix->offsetMem = 0;
 	}
 }
@@ -72,7 +74,7 @@ void CLMatrixInitWithCSV(CLMatrix * matrix, CLStringConst file)
 		fprintf(stderr, "CSV File Header error.\n");
 	}
 
-	matrix->name = malloc(sizeof(CLChar) * 1024);
+	matrix->name = calloc(BUFFER_STRING, sizeof(CLChar));
 	strcpy(matrix->name, headerFields[0]);
 	matrix->rows = atoi(headerFields[1]);
 	matrix->columns = atoi(headerFields[2]);

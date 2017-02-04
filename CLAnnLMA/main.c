@@ -92,19 +92,19 @@ void setupNetForIris(CLNet * net)
 
 CLNetDataType function(CLNetDataType x)
 {
-	return (sin(x) + 4 * cos(x)) / log(1 + sqrt(x));
+	return 0.2 * x + 0.4;
 }
 
 void setupForFunction(CLNet * net)
 {
 	CLString name = "Function";
-	CLUInt nPatterns = 6000;
+	CLUInt nPatterns = 150;
 	CLUInt nInputs = 1;
-	CLUInt nLayers = 3;
+	CLUInt nLayers = 2;
 	CLUInt nTargets = 1;
 
-	CLUInt neuronsPerLayer[] = {10, 7, nTargets};
-	CLActivation activationPerLayer[] = {CLActivationRadbas, CLActivationRadbas, CLActivationLinear};
+	CLUInt neuronsPerLayer[] = {32, nTargets};
+	CLActivation activationPerLayer[] = {CLActivationTansig, CLActivationLinear};
 
 	CLNetDataType * _patterns = calloc(nPatterns, sizeof(CLNetDataType));
 	CLNetDataType * _targets = calloc(nPatterns, sizeof(CLNetDataType));
@@ -116,12 +116,11 @@ void setupForFunction(CLNet * net)
 	}
 
 	normalize(_patterns, nPatterns);
-	normalize(_targets, nPatterns);
 
 	CLNetInit(net, nPatterns, nInputs, _patterns,
 			  nLayers, neuronsPerLayer, activationPerLayer,
 			  nTargets, _targets,
-			  name, CLTrue, 0);
+			  name, CLFalse, 0);
 
 	fillRandom(net->w, net->nWeights);
 }
@@ -184,9 +183,9 @@ int main(int argc, const char * argv[]) {
 	CLDeviceContext * devContext = calloc(1, sizeof(CLDeviceContext));
 	CLDeviceContextInit(devContext, platform, device);
 
-	CLNet * net = malloc(sizeof(CLNet));
+	CLNet * net = calloc(1, sizeof(CLNet));
 
-	switch (0) {
+	switch (3) {
 		case 0:
 			setupNetForXOR(net);
 			break;

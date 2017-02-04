@@ -97,6 +97,8 @@ typedef struct {
 	CLNetDataType finalError;
 	CLNetDataType finalDeltaError;
 
+	CLBool benchmark;
+
 } CLNet;
 
 void CLNetInit(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * patterns,

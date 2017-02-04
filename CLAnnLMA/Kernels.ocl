@@ -45,11 +45,14 @@ __kernel void activationRadbas(__global CLNetDataType * restrict matrix, uint ro
 //Chi Squared
 static void inline reduceInline(uint localId, __global CLNetDataType * restrict partialSums, __local CLNetDataType * localSums)
 {
-	for (uint stride = get_local_size(0) / 2; stride > 0; stride /= 2) {
-		barrier(CLK_LOCAL_MEM_FENCE);
+	barrier(CLK_LOCAL_MEM_FENCE);
 
-		if (localId < stride)
+	for (uint stride = get_local_size(0) / 2; stride > 0; stride /= 2) {
+
+		if (localId < stride) {
 			localSums[localId] += localSums[localId + stride];
+		}
+		barrier(CLK_LOCAL_MEM_FENCE);
 	}
 
 	if (localId == 0) {
