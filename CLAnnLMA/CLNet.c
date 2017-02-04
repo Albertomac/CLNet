@@ -130,8 +130,28 @@ void CLNetInit(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * pa
 			   CLStringConst name, CLBool shufflePattners, CLUInt nTestPatterns)
 {
 	if (neuronsPerLayer[nLayers - 1]  != nTargets) {
-		printf("nTargets must be the same of last value of neuronsPerLayer");
+		fprintf(stderr, "nTargets must be the same of last value of neuronsPerLayer\n");
 		exit(-1);
+	}
+
+	if (patterns == NULL) {
+		fprintf(stderr, "patterns must be not NULL\n");
+		exit(-2);
+	}
+
+	if (neuronsPerLayer == NULL) {
+		fprintf(stderr, "neuronsPerLayer must be not NULL\n");
+		exit(-3);
+	}
+
+	if (activationFunctionPerLayer == NULL) {
+		fprintf(stderr, "activationFunctionPerLayer must be not NULL\n");
+		exit(-4);
+	}
+
+	if (targets == NULL) {
+		fprintf(stderr, "targets must be not NULL\n");
+		exit(-5);
 	}
 
 	//nPatterns
@@ -244,11 +264,11 @@ void CLNetInit(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * pa
 	net->verbose = CLTrue;
 	net->maxIterations = 10000;
 	net->initialLambda = 0.0001;
-	net->upFactor = 10.0f;
-	net->downFactor = 10.0f;
+	net->upFactor = 10.0;
+	net->downFactor = 10.0;
 	net->targetDeltaError = 1e-12f;
-	net->finalError = 0.0f;
-	net->finalDeltaError = 0.0f;
+	net->finalError = 0.0;
+	net->finalDeltaError = 0.0;
 }
 
 void CLNetInitWithFile(CLNet * net, CLStringConst fileName)
@@ -574,6 +594,7 @@ void CLNetTrainLMA(CLNet * net, CLDeviceContext * devContext)
 
 	for (CLUInt i = 0; i < net->maxIterations; ++i) {
 
+		CLNetReloadWeights(net, devContext);
 		CLNetForward(net, devContext);								//Forward all'inizio dell'iterazione per ricalcolare le matrici Jacobian e Hessian
 		CLNetJacobian(net, devContext);								//Calcolo matrice Jacobian
 		CLNetHessian(net, devContext);								//Calcolo matrice Hessian
@@ -601,7 +622,7 @@ void CLNetTrainLMA(CLNet * net, CLDeviceContext * devContext)
 
 			printf("it = %4d,   lambda = %10g,   err = %10g,   derr = %10g\n", i, lambda, error, deltaError);
 
-			if (isnan(newError) || lambda > 1e10) return;
+			if (isnan(newError) || lambda > 1e12) return;
 
 			if (ill) {												//Se ill è ancora 1, vengono aggiornati i moltiplicatori
 				mult = (1 + lambda * net->upFactor)/(1 + lambda);
@@ -625,42 +646,44 @@ void CLNetPrintForward(CLNet * net, CLDeviceContext * devContext)
 {
 	CLMatrixUpdateValuesFromMem(net->outputs, devContext->queue);
 
-	for (CLUInt i = 0; i < net->nInputs; ++i) {
-		printf("Inputs[%2d]|", i);
+//	for (CLUInt i = 0; i < net->nInputs; ++i) {
+//		printf("  Inputs[%2d]  |", i);
+//	}
+	for (CLUInt i = 0; i < net->nTargets; ++i) {
+		printf("  Target[%2d]  |", i);
 	}
 	for (CLUInt i = 0; i < net->nTargets; ++i) {
-		printf("Target[%2d]|", i);
+		printf("  Output[%2d]  |", i);
 	}
 	for (CLUInt i = 0; i < net->nTargets; ++i) {
-		printf("Output[%2d]|", i);
-	}
-	for (CLUInt i = 0; i < net->nTargets; ++i) {
-		printf(" Error%%[%2d] |", i);
+		printf("   Error%%[%2d]  |", i);
 	}
 		printf("\n");
 
-	CLFloat * errorPerc = malloc(sizeof(CLFloat) * net->nTargets);
+#define PRINT_VALUE " %12g"
 
 	for (CLUInt p = 0; p < net->nTrainingPatterns; ++p) {
 
-		for (CLUInt i = 0; i < net->nInputs; ++i) {
-			printf("%10g|", net->trainingPatterns->values[p * net->nInputs + i]);
+//		for (CLUInt i = 0; i < net->nInputs; ++i) {
+//			printf(PRINT_VALUE " |", net->trainingPatterns->values[p * net->nInputs + i]);
+//		}
+
+		for (CLUInt o = 0; o < net->nTargets; ++o) {
+			CLNetDataType value = net->trainingTargets->values[p * net->nTargets + o];
+			printf(PRINT_VALUE " |", value);
 		}
 
 		for (CLUInt o = 0; o < net->nTargets; ++o) {
-			errorPerc[o] = net->trainingTargets->values[p * net->nTargets + o];
-			printf("%10g|", errorPerc[o]);
+			CLNetDataType value = net->outputs->values[p * net->nTargets + o];
+			printf(PRINT_VALUE " |", value);
 		}
 
 		for (CLUInt o = 0; o < net->nTargets; ++o) {
-			CLFloat value = net->outputs->values[p * net->nTargets + o];
-			errorPerc[o] -= value;
-			printf("%10g|", value);
-		}
+			CLNetDataType valueTarget = net->trainingTargets->values[p * net->nTargets + o];
+			CLNetDataType valueOutput = net->outputs->values[p * net->nTargets + o];
 
-		for (CLUInt o = 0; o < net->nTargets; ++o) {
-			CLFloat errorPercValue = fabs(errorPerc[o]) * 100;
-			printf( (errorPercValue > 30.0f ? "%10g♥️|" : "%10g💚|"), errorPercValue);
+			CLNetDataType errorPercValue = fabs(valueTarget - valueOutput) / valueTarget * 100;
+			printf( (fabs(errorPercValue) > 20.0f ? PRINT_VALUE "♥️|" : PRINT_VALUE"💚|"), errorPercValue);
 		}
 		printf("\n");
 	}
