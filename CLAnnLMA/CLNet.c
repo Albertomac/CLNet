@@ -218,6 +218,11 @@ void CLNetInit(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * pa
 	net->neuronsPerLayer = calloc(net->nLayers, sizeof(*neuronsPerLayer));
 	memcpy(net->neuronsPerLayer, neuronsPerLayer, sizeof(CLUInt) * net->nLayers);
 
+	//MARK:BIAS
+	for (CLUInt i = 0; i < net->nLayers - 1; ++i) {
+		net->neuronsPerLayer[i] += 1;
+	}
+
 	//activationFunctionPerLayer
 	net->activationFunctionPerLayer = calloc(net->nLayers, sizeof(*activationFunctionPerLayer));
 	memcpy(net->activationFunctionPerLayer, activationFunctionPerLayer, sizeof(CLActivation) * net->nLayers);
@@ -342,6 +347,8 @@ void CLNetMatrixMultiply(CLNet * net, CLDeviceContext * devContext,
 	CLSize n = matrixB->columns;
 	CLSize k = matrixA->columns;
 
+//	printf("GEMM %s(%zu, %zu) X %s(%zu, %zu) = %s(%zu, %zu)\n", matrixA->name, m, k, matrixB->name, k, n, matrixResult->name, m, n);
+
 //	clblasStatus status = GEMM(clblasRowMajor, transposeA, transposeB, m, n, k,
 //							   1, matrixA->mem, matrixA->offsetMem, (transposeA == clblasNoTrans ? k : matrixA->rows),
 //							   matrixB->mem, matrixB->offsetMem, (transposeB == clblasNoTrans ? n : matrixB->rows),
@@ -385,6 +392,7 @@ void CLNetActivationLayer(CLNet * net, CLDeviceContext * devContext, CLMatrix * 
 	CLSetKernelArg(kernelActivation, nArg++, sizeof(layer->columns), &layer->columns, "columns");
 
 	CLEnqueueNDRangeKernel(devContext->queue, kernelActivation, 2, NULL, gws, lws, 0, NULL, event, layer->name);
+	CLWaitForEvent(event, "eventActivation");
 }
 
 void TESTForward(CLNet * net, CLDeviceContext * devContext)
@@ -412,12 +420,6 @@ void CLNetForward(CLNet * net, CLDeviceContext * devContext)
 							net->weightsPerLayer[i], clblasNoTrans,
 							net->activationPerLayer[i], &eventsMultiply[i]);
 		CLNetActivationLayer(net, devContext, net->activationPerLayer[i], net->activationFunctionPerLayer[i], &eventsActivation[i]);
-	}
-
-	//
-	for (CLUInt i = 0; i < net->nLayers; ++i) {
-		if (net->activationFunctionPerLayer[i] != CLActivationLinear)
-			CLWaitForEvent(&eventsActivation[i], "eventActivation");
 	}
 
 #pragma mark BENCHMARK_FORWARD
@@ -819,6 +821,12 @@ void CLNetTrainLMA(CLNet * net, CLDeviceContext * devContext)
 	CLNetChiSquared(net, devContext);								//Calcolo dell'errore iniziale
 	error = net->errorChiSquared;
 
+//	printMatrixToFile(devContext, net->activationPerLayer[0], "/Volumes/RamDisk/H0.txt");
+//	printMatrixToFile(devContext, net->activationPerLayer[1], "/Volumes/RamDisk/H1.txt");
+//	printMatrixToFile(devContext, net->activationPerLayer[2], "/Volumes/RamDisk/H2.txt");
+//	printMatrixToFile(devContext, net->weights, "/Volumes/RamDisk/weights.txt");
+
+
 	for (CLUInt i = 0; i < net->maxIterations; ++i) {
 
 		CLNetReloadWeights(net, devContext);
@@ -873,9 +881,9 @@ void CLNetPrintForward(CLNet * net, CLDeviceContext * devContext)
 {
 	CLMatrixUpdateValuesFromMem(net->outputs, devContext->queue);
 
-	for (CLUInt i = 0; i < net->nInputs - net->bias; ++i) {
-		printf("  Inputs[%2d]  |", i);
-	}
+//	for (CLUInt i = 0; i < net->nInputs - net->bias; ++i) {
+//		printf("  Inputs[%2d]  |", i);
+//	}
 	for (CLUInt i = 0; i < net->nTargets; ++i) {
 		printf("  Target[%2d]  |", i);
 	}
@@ -891,9 +899,9 @@ void CLNetPrintForward(CLNet * net, CLDeviceContext * devContext)
 
 	for (CLUInt p = 0; p < net->nTrainingPatterns; ++p) {
 
-		for (CLUInt i = 0; i < net->nInputs - net->bias; ++i) {
-			printf(PRINT_VALUE " |", net->trainingPatterns->values[p * net->nInputs + i]);
-		}
+//		for (CLUInt i = 0; i < net->nInputs - net->bias; ++i) {
+//			printf(PRINT_VALUE " |", net->trainingPatterns->values[p * net->nInputs + i]);
+//		}
 
 		for (CLUInt o = 0; o < net->nTargets; ++o) {
 			CLNetDataType value = net->trainingTargets->values[p * net->nTargets + o];

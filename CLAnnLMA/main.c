@@ -92,7 +92,7 @@ void setupNetForIris(CLNet * net)
 
 CLNetDataType function(CLNetDataType x)
 {
-	return sin(x) + 4 * cos(x);//(sin(x) + 4 * cos(x)) /*/ log(1 + sqrt(x))*/;
+	return (sin(x) + 4 * cos(x)) / log(1 + sqrt(x));
 }
 
 void setupForFunction(CLNet * net)
@@ -100,11 +100,11 @@ void setupForFunction(CLNet * net)
 	CLString name = "Function";
 	CLUInt nPatterns = 200;
 	CLUInt nInputs = 1;
-	CLUInt nLayers = 2;
+	CLUInt nLayers = 3;
 	CLUInt nTargets = 1;
 
-	CLUInt neuronsPerLayer[] = {8, nTargets};
-	CLActivation activationPerLayer[] = {CLActivationTansig, CLActivationLinear};
+	CLUInt neuronsPerLayer[] = {10, 7, nTargets};
+	CLActivation activationPerLayer[] = {CLActivationRadbas, CLActivationRadbas, CLActivationLinear};
 
 	CLNetDataType * _patterns = calloc(nPatterns, sizeof(CLNetDataType));
 	CLNetDataType * _targets = calloc(nPatterns, sizeof(CLNetDataType));
@@ -186,7 +186,7 @@ int main(int argc, const char * argv[]) {
 
 	CLNet * net = calloc(1, sizeof(CLNet));
 
-	switch (2) {
+	switch (0) {
 		case 0:
 			setupNetForXOR(net);
 			break;

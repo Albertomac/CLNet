@@ -12,13 +12,31 @@ __kernel void arrayMemSet(__global CLNetDataType * restrict array, uint elements
 
 
 //Activations
+//MARK:BIAS
+__kernel void activationLinear(__global CLNetDataType * restrict matrix, uint rows, uint columns)
+{
+	uint x = get_global_id(0);
+	uint y = get_global_id(1);
+
+	//MARK:BIAS
+	if (y == columns - 1) {
+		matrix[x * columns + y] = 1;
+	}
+}
+
 __kernel void activationSigmoid(__global CLNetDataType * restrict matrix, uint rows, uint columns)
 {
 	uint x = get_global_id(0);
 	uint y = get_global_id(1);
 
-	if (x < rows && y < columns)
+	if (x < rows && y < columns) {
 		matrix[x * columns + y] = 1 / (1 + exp(- matrix[x * columns + y]));
+
+		//MARK:BIAS
+		if (y == columns - 1) {
+			matrix[x * columns + y] = 1;
+		}
+	}
 }
 
 __kernel void activationTansig(__global CLNetDataType * restrict matrix, uint rows, uint columns)
@@ -26,8 +44,14 @@ __kernel void activationTansig(__global CLNetDataType * restrict matrix, uint ro
     uint x = get_global_id(0);
     uint y = get_global_id(1);
 
-    if (x < rows && y < columns)
+	if (x < rows && y < columns) {
 		matrix[x * columns + y] = 2 / (1 + exp(-2 * matrix[x * columns + y])) - 1;
+
+		//MARK:BIAS
+		if (y == columns - 1) {
+			matrix[x * columns + y] = 1;
+		}
+	}
 }
 
 __kernel void activationRadbas(__global CLNetDataType * restrict matrix, uint rows, uint columns)
@@ -38,6 +62,11 @@ __kernel void activationRadbas(__global CLNetDataType * restrict matrix, uint ro
 	if (x < rows && y < columns) {
 		CLNetDataType val = matrix[x * columns + y];
 		matrix[x * columns + y] = exp(-(val * val));
+
+		//MARK: BIAS
+		if (y == columns - 1) {
+			matrix[x * columns + y] = 1;
+		}
 	}
 }
 
