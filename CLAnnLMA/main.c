@@ -46,16 +46,16 @@ void setupNetForXOR(CLNet * net)
 {
 	CLString name = "TEST";
 	CLUInt nPatterns = 4;
-	CLUInt nInputs = 3;
+	CLUInt nInputs = 2;
 	CLUInt nLayers = 2;
 	CLUInt nTargets = 1;
 
 	CLUInt neuronsPerLayer[] = {10, nTargets};
 	CLActivation activationFunctionPerLayer[] = {CLActivationTansig, CLActivationLinear};
 
-	CLNetDataType _inputs[] = {0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1};
+	CLNetDataType _inputs[] = {0, 0, 0, 1, 1, 0, 1, 1};
 
-	CLNetDataType _targets[] = {-1,	1,	1,	-1};
+	CLNetDataType _targets[] = {0,	1,	1,	0};
 
 	CLNetInit(net, nPatterns, nInputs, _inputs,
 			  nLayers, neuronsPerLayer, activationFunctionPerLayer,
@@ -92,7 +92,7 @@ void setupNetForIris(CLNet * net)
 
 CLNetDataType function(CLNetDataType x)
 {
-	return 0.2 * x + 0.4;
+	return  (sin(x) + 4 * cos(x)) /*/ log(1 + sqrt(x))*/;
 }
 
 void setupForFunction(CLNet * net)
@@ -100,11 +100,11 @@ void setupForFunction(CLNet * net)
 	CLString name = "Function";
 	CLUInt nPatterns = 150;
 	CLUInt nInputs = 1;
-	CLUInt nLayers = 2;
+	CLUInt nLayers = 3;
 	CLUInt nTargets = 1;
 
-	CLUInt neuronsPerLayer[] = {32, nTargets};
-	CLActivation activationPerLayer[] = {CLActivationTansig, CLActivationLinear};
+	CLUInt neuronsPerLayer[] = {7, 5, nTargets};
+	CLActivation activationPerLayer[] = {CLActivationRadbas, CLActivationTansig, CLActivationLinear};
 
 	CLNetDataType * _patterns = calloc(nPatterns, sizeof(CLNetDataType));
 	CLNetDataType * _targets = calloc(nPatterns, sizeof(CLNetDataType));
@@ -116,6 +116,7 @@ void setupForFunction(CLNet * net)
 	}
 
 	normalize(_patterns, nPatterns);
+	normalize(_targets, nPatterns);
 
 	CLNetInit(net, nPatterns, nInputs, _patterns,
 			  nLayers, neuronsPerLayer, activationPerLayer,
@@ -174,7 +175,7 @@ void setupTEST(CLNet * net)
 }
 
 int main(int argc, const char * argv[]) {
-
+	
 	CLRandomSetup();
 
 	platform = CLSelectPlatform(platformIndex);
@@ -185,7 +186,7 @@ int main(int argc, const char * argv[]) {
 
 	CLNet * net = calloc(1, sizeof(CLNet));
 
-	switch (3) {
+	switch (0) {
 		case 0:
 			setupNetForXOR(net);
 			break;
@@ -218,6 +219,7 @@ int main(int argc, const char * argv[]) {
 
 //	CLMatrixSaveCSV(net->weightsTemp, "/Volumes/RamDisk/weights.csv");
 	CLNetRelease(net);
+	CLDeviceContextRelease(devContext);
 	
 	return 0;
 }

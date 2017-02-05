@@ -59,6 +59,7 @@ void CLMatrixPrint(CLMatrix * matrix, CLMatrixTranspose transpose);
 void CLMatrixPrintStats(CLMatrix * matrix);
 
 //Release
-void CLMatrixRelease(CLMatrix * matrix);
+void CLMatrixCleanUp(CLMatrix * matrix);
+#define CLMatrixRelease(matrix) do {CLMatrixCleanUp(matrix); matrix = NULL;} while(0);
 
 #endif /* CLMatrix_h */

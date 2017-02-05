@@ -70,7 +70,7 @@ void CLDeviceContextInit(CLDeviceContext * devContext, CLPlatform platform, CLDe
 	devContext->kernelCholeskyDecomposition = CLCreateKernel(devContext->program, kCholeskyDecomposition);
 }
 
-void CLDeviceContextRelease(CLDeviceContext * devContext)
+void CLDeviceContextCleanUp(CLDeviceContext * devContext)
 {
 	CLReleaseKernel(devContext->kernelMemSet, kMemSet);
 	CLReleaseKernel(devContext->kernelsActivation[CLActivationSigmoid], kActivationSigmoid);
@@ -146,6 +146,11 @@ void CLNetMemSetMatrix(CLNet * net, CLDeviceContext * devContext, CLMatrix * mat
 	CLNetMemSet(net, devContext, matrix->mem, matrix->elements, value, matrix->name);
 }
 
+void printStat(CLDouble flops, CLDouble time, CLStringConst name)
+{
+	printf("%s:\t\t\t%g GB/ms\t%g ms\n", name, sizeof(CLNetDataType) * flops / time, time * 1e-6);
+}
+
 
 void CLNetInit(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * patterns,
 			   CLUInt nLayers, CLUInt * neuronsPerLayer, CLActivation * activationFunctionPerLayer,
@@ -177,15 +182,26 @@ void CLNetInit(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * pa
 		exit(-5);
 	}
 
+	//bias
+	net->bias = 1;
+
 	//nPatterns
 	net->nPatterns = nPatterns;
 
 	//nInputs
-	net->nInputs = nInputs;
+//	net->nInputs = nInputs;
+	net->nInputs = nInputs + net->bias;
 
 	//patterns
+//	net->p = calloc(net->nPatterns * net->nInputs, sizeof(*patterns));
+//	memcpy(net->p, patterns, sizeof(CLNetDataType) * net->nPatterns * net->nInputs);
 	net->p = calloc(net->nPatterns * net->nInputs, sizeof(*patterns));
-	memcpy(net->p, patterns, sizeof(CLNetDataType) * net->nPatterns * net->nInputs);
+
+	for (CLUInt i = 0; i < net->nPatterns; ++i) {
+		for (CLUInt j = 0; j < net->nInputs; j++) {
+			net->p[i * net->nInputs + j] = (j < net->nInputs - net->bias) ? patterns[i * (net->nInputs - net->bias) + j] : 1;
+		}
+	}
 
 	//nHiddenLayers
 	net->nLayers = nLayers;
@@ -213,9 +229,6 @@ void CLNetInit(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * pa
 	//targets
 	net->t = calloc(net->nPatterns * net->nTargets, sizeof(CLNetDataType));
 	memcpy(net->t, targets, sizeof(CLNetDataType) * net->nPatterns * net->nTargets);
-
-	//nBiasPerLayer
-	net->nBiasPerLayer = 1;
 
 	//name
 	net->name = calloc(BUFFER_STRING, sizeof(CLChar));
@@ -299,7 +312,7 @@ void CLNetInit(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * pa
 	net->finalDeltaError = 0.0;
 
 	//benchmark
-	net->benchmark = CLTrue;
+	net->benchmark = CLFalse;
 }
 
 void CLNetInitWithFile(CLNet * net, CLStringConst fileName)
@@ -340,7 +353,7 @@ void CLNetMatrixMultiply(CLNet * net, CLDeviceContext * devContext,
 		CLDouble time = timeBetweenEventsNS(*event, *event);
 		CLDouble flops = 2 * m * n * k;
 
-		printf("matrixMultiply: %g GB/ms\n", sizeof(CLNetDataType) * flops / time);
+		printStat(flops, time, "matrixMultiply");
 	}
 }
 
@@ -426,7 +439,7 @@ void CLNetForward(CLNet * net, CLDeviceContext * devContext)
 					default:
 						break;
 				}
-				printf("activation[%d]: %g GB/ms\n", i, sizeof(CLNetDataType) * flops / time);
+				printStat(flops, time, "activation[]");
 			}
 		}
 	}
@@ -437,6 +450,9 @@ void CLNetForward(CLNet * net, CLDeviceContext * devContext)
 		if (net->activationFunctionPerLayer[i] != CLActivationLinear)
 			CLReleaseEvent(eventsActivation[i], "eventActivation");
 	}
+
+	free(eventsMultiply);
+	free(eventsActivation);
 }
 
 void TESTErrorChiSquared(CLNet * net, CLDeviceContext * devContext)
@@ -474,6 +490,7 @@ void CLNetChiSquared(CLNet * net, CLDeviceContext * devContext)
 
 	CLNetDataType * errorValue = CLEnqueueReadBuffer(devContext->queue, net->chiSquaredError->mem, sizeof(CLNetDataType), "errorChiSquared");
 	net->errorChiSquared = errorValue[0];
+	free(errorValue);
 
 #pragma mark BENCHMARK_CHI_SQUARED
 	if (net->benchmark == CLTrue) {
@@ -483,11 +500,11 @@ void CLNetChiSquared(CLNet * net, CLDeviceContext * devContext)
 
 		time = timeBetweenEventsNS(eventChiSquared, eventChiSquared);
 		flops = 3 * net->outputs->elements;
-		printf("chiSquared: %g GB/ms\n", sizeof(CLNetDataType) * flops / time);
+		printStat(flops, time, "chiSquared");
 
 		time = timeBetweenEventsNS(eventChiSquaredReduce, eventChiSquaredReduce);
 		flops = 3 * nwg;
-		printf("chiSquaredReduce: %g GB/ms\n", sizeof(CLNetDataType) * flops / time);
+		printStat(flops, time, "chiSquaredReduce");
 	}
 
 	//Releases
@@ -561,6 +578,8 @@ void CLNetJacobian(CLNet * net, CLDeviceContext * devContext)
 	for (CLUInt i = 0; i < net->nLayers - 1; ++i) {
 		CLReleaseEvent(eventsJacobian[i], "eventsJacobian");
 	}
+
+	free(eventsJacobian);
 }
 
 void TESTHessian(CLNet * net, CLDeviceContext * devContext)
@@ -593,7 +612,7 @@ void CLNetHessian(CLNet * net, CLDeviceContext * devContext)
 		CLDouble time = timeBetweenEventsNS(eventHessian, eventHessian);
 		CLDouble flops = 2 * m * n * k;
 
-		printf("hessian: %g GB/ms\n", sizeof(CLNetDataType) * flops / time);
+		printStat(flops, time, "hessian");
 	}
 
 	CLReleaseEvent(eventHessian, "eventHessian");
@@ -603,6 +622,8 @@ void TESTCalculateD(CLNet * net, CLDeviceContext * devContext)
 {
 	printMatrixToFile(devContext, net->d, "/Volumes/RamDisk/TESTForward/dMac.txt");
 }
+
+
 
 void CLNetCalculateD(CLNet * net, CLDeviceContext * devContext)
 {
@@ -626,7 +647,7 @@ void CLNetCalculateD(CLNet * net, CLDeviceContext * devContext)
 		CLDouble time = timeBetweenEventsNS(eventD, eventD);
 		CLDouble flops = 3 * (net->nWeights * net->nPatterns);
 
-		printf("calculateD: %g GB/ms\n", sizeof(CLNetDataType) * flops / time);
+		printStat(flops, time, "calculateD");
 	}
 
 	CLReleaseEvent(eventD, "eventDelta");
@@ -665,10 +686,13 @@ void CLNetCholeskyDecomposition(CLNet * net, CLDeviceContext * devContext, CLNet
 
 	CLUInt * illResult = CLEnqueueReadBuffer(devContext->queue, net->illMem, sizeof(CLUInt), "illMem");
 	net->ill = illResult[0];
+	free(illResult);
 
 	for (CLUInt i = 0; i < net->cholesky->rows; ++i) {
 		CLReleaseEvent(eventCholeskyDecomposition[i], "eventCholeskyDecomposition");
 	}
+
+	free(eventCholeskyDecomposition);
 }
 
 
@@ -752,7 +776,6 @@ void CLNetTrainLMA(CLNet * net, CLDeviceContext * devContext)
 
 			CLNetCholeskyDecomposition(net, devContext, mult);		//Calcolo della decomposizione di Cholesky e la diagonale di hessian viene moltiplicata per mult
 			ill = net->ill;
-			printf("ill: %d\n", ill);
 
 			if (!ill) {
 				CLNetCholeskySolve(net, devContext);				//Risoluzione di Cholesky per il calcolo dei delta dei pesi
@@ -795,9 +818,9 @@ void CLNetPrintForward(CLNet * net, CLDeviceContext * devContext)
 {
 	CLMatrixUpdateValuesFromMem(net->outputs, devContext->queue);
 
-//	for (CLUInt i = 0; i < net->nInputs; ++i) {
-//		printf("  Inputs[%2d]  |", i);
-//	}
+	for (CLUInt i = 0; i < net->nInputs; ++i) {
+		printf("  Inputs[%2d]  |", i);
+	}
 	for (CLUInt i = 0; i < net->nTargets; ++i) {
 		printf("  Target[%2d]  |", i);
 	}
@@ -813,9 +836,9 @@ void CLNetPrintForward(CLNet * net, CLDeviceContext * devContext)
 
 	for (CLUInt p = 0; p < net->nTrainingPatterns; ++p) {
 
-//		for (CLUInt i = 0; i < net->nInputs; ++i) {
-//			printf(PRINT_VALUE " |", net->trainingPatterns->values[p * net->nInputs + i]);
-//		}
+		for (CLUInt i = 0; i < net->nInputs; ++i) {
+			printf(PRINT_VALUE " |", net->trainingPatterns->values[p * net->nInputs + i]);
+		}
 
 		for (CLUInt o = 0; o < net->nTargets; ++o) {
 			CLNetDataType value = net->trainingTargets->values[p * net->nTargets + o];
@@ -939,26 +962,26 @@ void CLNetTrainWithDeviceContext(CLNet * net, CLDeviceContext * devContext)
 
 	clblasSetup();
 
-	CLNetForward(net, devContext);
-	TESTForward(net, devContext);
-
-	CLNetChiSquared(net, devContext);
-	TESTErrorChiSquared(net, devContext);
-
-	CLNetJacobian(net, devContext);
-	TESTJacobian(net, devContext);
-
-	CLNetHessian(net, devContext);
-	TESTHessian(net, devContext);
-
-	CLNetCalculateD(net, devContext);
-	TESTCalculateD(net, devContext);
-
-	CLNetCholeskyDecomposition(net, devContext, 1);
-	TESTCholeskyDecomposition(net, devContext);
-//	CLNetTrainLMA(net, devContext);
+//	CLNetForward(net, devContext);
+//	TESTForward(net, devContext);
 //
-//	CLNetPrintForward(net, devContext);
+//	CLNetChiSquared(net, devContext);
+//	TESTErrorChiSquared(net, devContext);
+//
+//	CLNetJacobian(net, devContext);
+//	TESTJacobian(net, devContext);
+//
+//	CLNetHessian(net, devContext);
+//	TESTHessian(net, devContext);
+//
+//	CLNetCalculateD(net, devContext);
+//	TESTCalculateD(net, devContext);
+//
+//	CLNetCholeskyDecomposition(net, devContext, 1);
+//	TESTCholeskyDecomposition(net, devContext);
+	CLNetTrainLMA(net, devContext);
+
+	CLNetPrintForward(net, devContext);
 }
 
 void CLNetPrintResultsWithInputs(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * inputs)
@@ -966,7 +989,7 @@ void CLNetPrintResultsWithInputs(CLNet * net, CLUInt nPatterns, CLUInt nInputs, 
 
 }
 
-void CLNetRelease(CLNet * net)
+void CLNetCleanUp(CLNet * net)
 {
 	clblasTeardown();
 
@@ -1003,5 +1026,4 @@ void CLNetRelease(CLNet * net)
 	CLReleaseMemObject(net->illMem, "illMem");
 
 	free(net);
-	net = NULL;
 }

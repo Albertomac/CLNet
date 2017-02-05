@@ -221,7 +221,7 @@ void CLMatrixPrintStats(CLMatrix * matrix)
 	printf("%s: %d x %d = %d - %zu\n", matrix->name, matrix->rows, matrix->columns, matrix->elements, matrix->size);
 }
 
-void CLMatrixRelease(CLMatrix * matrix)
+void CLMatrixCleanUp(CLMatrix * matrix)
 {
 	CLReleaseMemObject(matrix->mem, matrix->name);
 	matrix->mem = NULL;
@@ -230,6 +230,4 @@ void CLMatrixRelease(CLMatrix * matrix)
 	free(matrix->values);
 	matrix->values = NULL;
 	free(matrix);
-//TODO: Da verificare se è utile
-	matrix = NULL;
 }

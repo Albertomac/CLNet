@@ -34,6 +34,8 @@ typedef struct {
 } CLDeviceContext;
 
 void CLDeviceContextInit(CLDeviceContext * devContext, CLPlatform platform, CLDevice device);
+void CLDeviceContextCleanUp(CLDeviceContext * devContext);
+#define CLDeviceContextRelease(devContext) do { CLDeviceContextCleanUp(devContext); devContext = NULL; } while(0);
 
 
 #pragma mark CLNet
@@ -50,13 +52,13 @@ typedef enum CLActivation_ {
 typedef struct {
 
 	CLString name;
+	CLUInt bias;
 	CLUInt nPatterns;
 	CLUInt nInputs;
 	CLUInt nLayers;
 	CLUInt * neuronsPerLayer;
 	CLActivation * activationFunctionPerLayer;
 	CLUInt nTargets;
-	CLUInt nBiasPerLayer;
 
 	CLUInt nTestPatterns;
 	CLUInt nTrainingPatterns;
@@ -112,6 +114,7 @@ void CLNetTrainWithDeviceContext(CLNet * net, CLDeviceContext * devContext);
 
 //void CLNetPrintResultsWithInputs(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * inputs);
 
-void CLNetRelease(CLNet * net);
+void CLNetCleanUp(CLNet * net);
+#define CLNetRelease(net) do {CLNetCleanUp(net); net = NULL; } while(0);
 
 #endif /* CLNet_h */
