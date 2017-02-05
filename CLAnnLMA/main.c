@@ -92,13 +92,13 @@ void setupNetForIris(CLNet * net)
 
 CLNetDataType function(CLNetDataType x)
 {
-	return sin(x);//(sin(x) + 4 * cos(x)) /*/ log(1 + sqrt(x))*/;
+	return sin(x) + 4 * cos(x);//(sin(x) + 4 * cos(x)) /*/ log(1 + sqrt(x))*/;
 }
 
 void setupForFunction(CLNet * net)
 {
 	CLString name = "Function";
-	CLUInt nPatterns = 150;
+	CLUInt nPatterns = 200;
 	CLUInt nInputs = 1;
 	CLUInt nLayers = 2;
 	CLUInt nTargets = 1;
@@ -109,7 +109,7 @@ void setupForFunction(CLNet * net)
 	CLNetDataType * _patterns = calloc(nPatterns, sizeof(CLNetDataType));
 	CLNetDataType * _targets = calloc(nPatterns, sizeof(CLNetDataType));
 
-	fillRandom(_patterns, nPatterns, 1.2);
+	fillRandom(_patterns, nPatterns, 1);
 
 	for (CLUInt i = 0; i < nPatterns; ++i) {
 		_targets[i] = function(_patterns[i]);
