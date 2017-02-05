@@ -125,6 +125,14 @@ void shufflePatterns(CLNetDataType * p, CLNetDataType * t, CLUInt nPatterns, CLU
 	}
 }
 
+CLUInt getReferenceCountEvent(CLEvent event)
+{
+	CLUInt count;
+	CLInt error = clGetEventInfo(event, CL_EVENT_REFERENCE_COUNT, sizeof(CLUInt), &count, NULL);
+	CLErrorCheck(error, "clGetEventInfo", "", CHECK_NOT_EXIT);
+	return count;
+}
+
 void CLNetMemSet(CLNet * net, CLDeviceContext * devContext, CLMem mem, CLUInt elements, CLNetDataType value, CLStringConst name)
 {
 	CLEvent eventMemSet;
@@ -404,6 +412,14 @@ void CLNetForward(CLNet * net, CLDeviceContext * devContext)
 		CLNetActivationLayer(net, devContext, net->activationPerLayer[i], net->activationFunctionPerLayer[i], &eventsActivation[i]);
 	}
 
+	//
+	for (CLUInt i = 0; i < net->nLayers; ++i) {
+		CLWaitForEvent(&eventsMultiply[i], "eventMultiply");
+
+		if (net->activationFunctionPerLayer[i] != CLActivationLinear)
+			CLWaitForEvent(&eventsActivation[i], "eventActivation");
+	}
+
 #pragma mark BENCHMARK_FORWARD
 	if (net->benchmark == CLTrue) {
 		CLDouble time = 0;
@@ -492,6 +508,10 @@ void CLNetChiSquared(CLNet * net, CLDeviceContext * devContext)
 	net->errorChiSquared = errorValue[0];
 	free(errorValue);
 
+	//
+	CLWaitForEvent(&eventChiSquared, "eventChiSquared");
+	CLWaitForEvent(&eventChiSquaredReduce, "eventChiSquaredReduce");
+
 #pragma mark BENCHMARK_CHI_SQUARED
 	if (net->benchmark == CLTrue) {
 
@@ -575,6 +595,11 @@ void CLNetJacobian(CLNet * net, CLDeviceContext * devContext)
 		offset += net->neuronsPerLayer[i] * slope;
 	}
 
+	//
+	for (CLUInt i = 0; i < net->nLayers - 1; ++i) {
+		CLWaitForEvent(&eventsJacobian[i], "eventsJacobian");
+	}
+
 	for (CLUInt i = 0; i < net->nLayers - 1; ++i) {
 		CLReleaseEvent(eventsJacobian[i], "eventsJacobian");
 	}
@@ -607,6 +632,9 @@ void CLNetHessian(CLNet * net, CLDeviceContext * devContext)
 //						net->jacobian, clblasNoTrans,
 //						net->hessian, &eventHessian);
 
+	//
+	CLWaitForEvent(&eventHessian, "eventHessian");
+
 #pragma mark BENCHMARK_HESSIAN
 	if (net->benchmark == CLTrue) {
 		CLDouble time = timeBetweenEventsNS(eventHessian, eventHessian);
@@ -622,8 +650,6 @@ void TESTCalculateD(CLNet * net, CLDeviceContext * devContext)
 {
 	printMatrixToFile(devContext, net->d, "/Volumes/RamDisk/TESTForward/dMac.txt");
 }
-
-
 
 void CLNetCalculateD(CLNet * net, CLDeviceContext * devContext)
 {
@@ -641,6 +667,9 @@ void CLNetCalculateD(CLNet * net, CLDeviceContext * devContext)
 	CLSize gws[] = {CLGetOptimalGlobalWorkItemsSize(net->d->columns, BLOCK_SIZE_DELTA)};
 
 	CLEnqueueNDRangeKernel(devContext->queue, kernelDelta, 1, NULL, gws, lws, 0, NULL, &eventD, kDelta);
+
+	//
+	CLWaitForEvent(&eventD, "eventD");
 
 #pragma mark BENCHMARK_CALCULATE_D
 	if (net->benchmark == CLTrue) {
@@ -688,6 +717,11 @@ void CLNetCholeskyDecomposition(CLNet * net, CLDeviceContext * devContext, CLNet
 	net->ill = illResult[0];
 	free(illResult);
 
+	//
+	for (CLUInt i = 0; i < net->cholesky->rows; ++i) {
+		CLWaitForEvent(&eventCholeskyDecomposition[i], "eventCholeskyDecomposition");
+	}
+
 	for (CLUInt i = 0; i < net->cholesky->rows; ++i) {
 		CLReleaseEvent(eventCholeskyDecomposition[i], "eventCholeskyDecomposition");
 	}
@@ -716,6 +750,11 @@ void CLNetCholeskySolve(CLNet * net, CLDeviceContext * devContext)
 	CLNetSolveTriangular(net, devContext, net->cholesky, net->delta, clblasTrans, &eventsSolve[0]);
 	CLNetSolveTriangular(net, devContext, net->cholesky, net->delta, clblasNoTrans, &eventsSolve[1]);
 
+	//
+	CLWaitForEvent(&eventCopyDelta, "eventCopyDelta");
+	CLWaitForEvent(&eventsSolve[0], "eventSolve[0]");
+	CLWaitForEvent(&eventsSolve[1], "eventSolve[1]");
+
 	CLReleaseEvent(eventCopyDelta, "eventCopyDelta");
 	CLReleaseEvent(eventsSolve[0], "eventSolve[0]");
 	CLReleaseEvent(eventsSolve[1], "eventSolve[1]");
@@ -727,6 +766,8 @@ void CLNetReloadWeights(CLNet * net, CLDeviceContext * devContext)
 	CLInt status = clEnqueueCopyBuffer(devContext->queue, net->weightsTemp->mem, net->weights->mem, 0, 0, net->weightsTemp->size, 0, NULL, &eventReloadWeights);
 	CLErrorCheck(status, "clEnqueueCopyBuffer", "weightsTemp -> weights", CHECK_EXIT);
 
+	CLWaitForEvent(&eventReloadWeights, "eventReloadWeights");
+
 	CLReleaseEvent(eventReloadWeights, "eventReloadWeights");
 }
 
@@ -736,6 +777,8 @@ void CLNetUpdateWeightsTemp(CLNet * net, CLDeviceContext * devContext)
 	CLInt status = clEnqueueCopyBuffer(devContext->queue, net->weights->mem, net->weightsTemp->mem, 0, 0, net->weights->size, 0, NULL, &eventUpdateWeightsTemp);
 	CLErrorCheck(status, "clEnqueueCopyBuffer", "weights -> weightsTemp", CHECK_EXIT);
 
+	CLWaitForEvent(&eventUpdateWeightsTemp, "eventReloadWeights");
+
 	CLReleaseEvent(eventUpdateWeightsTemp, "eventUpdateWeightsTemp");
 }
 
@@ -744,6 +787,8 @@ void CLNetUpdateWeightsWithDelta(CLNet * net, CLDeviceContext * devContext)
 	CLEvent eventUpdateWeights;
 	clblasStatus status = AXPY(net->weights->elements, 1, net->delta->mem, 0, 1, net->weights->mem, 0, 1, 1, &devContext->queue, 0, NULL, &eventUpdateWeights);
 	CLErrorCheck(status, "AXPY", "updateWeightsWithDelta", CHECK_EXIT);
+
+	CLWaitForEvent(&eventUpdateWeights, "eventReloadWeights");
 
 	CLReleaseEvent(eventUpdateWeights, "eventUpdateWeights");
 }
@@ -798,9 +843,6 @@ void CLNetTrainLMA(CLNet * net, CLDeviceContext * devContext)
 				lambda *= net->upFactor;
 				i++;
 			}
-
-			clFlush(devContext->queue);
-			CLFinish(devContext->queue);
 		}
 		CLNetUpdateWeightsTemp(net, devContext);					//I nuovi pesi vengono salvati
 
@@ -818,7 +860,7 @@ void CLNetPrintForward(CLNet * net, CLDeviceContext * devContext)
 {
 	CLMatrixUpdateValuesFromMem(net->outputs, devContext->queue);
 
-	for (CLUInt i = 0; i < net->nInputs; ++i) {
+	for (CLUInt i = 0; i < net->nInputs - net->bias; ++i) {
 		printf("  Inputs[%2d]  |", i);
 	}
 	for (CLUInt i = 0; i < net->nTargets; ++i) {
@@ -836,7 +878,7 @@ void CLNetPrintForward(CLNet * net, CLDeviceContext * devContext)
 
 	for (CLUInt p = 0; p < net->nTrainingPatterns; ++p) {
 
-		for (CLUInt i = 0; i < net->nInputs; ++i) {
+		for (CLUInt i = 0; i < net->nInputs - net->bias; ++i) {
 			printf(PRINT_VALUE " |", net->trainingPatterns->values[p * net->nInputs + i]);
 		}
 
@@ -854,7 +896,7 @@ void CLNetPrintForward(CLNet * net, CLDeviceContext * devContext)
 			CLNetDataType valueTarget = net->trainingTargets->values[p * net->nTargets + o];
 			CLNetDataType valueOutput = net->outputs->values[p * net->nTargets + o];
 
-			CLNetDataType errorPercValue = fabs(valueTarget - valueOutput) / valueTarget * 100;
+			CLNetDataType errorPercValue = (valueTarget == 0) ? valueOutput * 100 : fabs(valueTarget - valueOutput) / valueTarget * 100;
 			printf( (fabs(errorPercValue) > 20.0f ? PRINT_VALUE "♥️|" : PRINT_VALUE"💚|"), errorPercValue);
 		}
 		printf("\n");

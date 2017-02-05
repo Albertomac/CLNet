@@ -123,9 +123,6 @@ CLFloat timeBetweenEventsNS(CLEvent start, CLEvent finish)
 		return 0.0f;
 	}
 
-	CLWaitForEvent(&start, "start");
-	CLWaitForEvent(&finish, "finish");
-
 	CLULong timeStart, timeEnd;
 	clGetEventProfilingInfo(start, CL_PROFILING_COMMAND_START, sizeof(timeStart), &timeStart, NULL);
 	clGetEventProfilingInfo(finish, CL_PROFILING_COMMAND_END, sizeof(timeEnd), &timeEnd, NULL);
