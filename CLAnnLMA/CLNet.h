@@ -106,7 +106,7 @@ typedef struct {
 void CLNetInit(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * patterns,
 			   CLUInt nLayers, CLUInt * neuronsPerLayer, CLActivation * activationFunctionPerLayer,
 			   CLUInt nTargets, CLNetDataType * targets,
-			   CLStringConst name, CLBool shufflePattners, CLUInt nTestPatterns);
+			   CLStringConst name, CLBool shufflePattners, CLUInt nTestPatterns, CLUInt nBias);
 
 //void CLNetInitWithFile(CLNet * net, CLStringConst fileName);
 
