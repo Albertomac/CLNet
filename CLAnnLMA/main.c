@@ -74,7 +74,7 @@ void setupNetForIris(CLNet * net)
 	CLUInt nTargets = 3;
 
 	CLUInt neuronsPerLayer[] = {7, 5, 3};
-	CLActivation activationPerLayer[] = {CLActivationRadbas, CLActivationTansig, CLActivationLinear};
+	CLActivation activationPerLayer[] = {CLActivationRadbas, CLActivationRadbas, CLActivationLinear};
 
 	CLMatrix * patterns = calloc(1, sizeof(CLMatrix));
 	CLMatrixInitWithCSV(patterns, "irisInputs.csv");
@@ -105,7 +105,7 @@ void setupForFunction(CLNet * net)
 	CLUInt nTargets = 1;
 
 	CLUInt neuronsPerLayer[] = {10, 7, 1};
-	CLActivation activationPerLayer[] = {CLActivationRadbas, CLActivationRadbas, CLActivationLinear};
+	CLActivation activationPerLayer[] = {CLActivationRadbas, CLActivationTansig, CLActivationLinear};
 
 	CLNetDataType * _patterns = calloc(nPatterns, sizeof(CLNetDataType));
 	CLNetDataType * _targets = calloc(nPatterns, sizeof(CLNetDataType));

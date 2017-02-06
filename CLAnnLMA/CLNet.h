@@ -29,6 +29,7 @@ typedef struct {
 	CLKernel kernelChiSquaredReduce;
 	CLKernel kernelJacobian;
 	CLKernel kernelDelta;
+	CLKernel kernelUpdateDiagonal;
 	CLKernel kernelCholeskyDecomposition;
 
 } CLDeviceContext;

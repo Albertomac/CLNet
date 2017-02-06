@@ -153,12 +153,21 @@ __kernel void delta(__global CLNetDataType * restrict delta, __global CLNetDataT
 	}
 }
 
+__kernel void updateDiagonal(__global CLNetDataType * restrict matrix, uint dim, CLNetDataType mult)
+{
+	uint x = get_global_id(0);
+	if (x < dim) {
+		matrix[x * dim + x] = matrix[x * dim + x] * mult;
+	}
+}
+
+
 #define TOL 1e-30f
 #define a(r, c) a[(r * npar + c)]
 #define l(r, c) l[(r * npar + c)]
 
 __kernel void choleskyDecomposition(__global CLNetDataType * restrict l,
-									CLNetDataType alpha, __global CLNetDataType * restrict a,
+									__global CLNetDataType * restrict a,
 									__global CLNetDataType * sums, uint npar, __global uint * ill, uint x)
 {
 	uint y = get_global_id(0);
@@ -167,7 +176,7 @@ __kernel void choleskyDecomposition(__global CLNetDataType * restrict l,
 		return;
 	}
 
-	CLNetDataType diag = a(x, x) * alpha - sums[x];
+	CLNetDataType diag = a(x, x) - sums[x];
 
 	if (diag < TOL) {
 		ill[0] = 1;
@@ -188,6 +197,5 @@ __kernel void choleskyDecomposition(__global CLNetDataType * restrict l,
 
 	if (y == x) {
 		l(x, x) = diag;
-		a(x, x) *= alpha;
 	}
 }

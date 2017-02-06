@@ -23,6 +23,7 @@
 #define BLOCK_SIZE_CHI_SQUARED 64
 #define BLOCK_SIZE_JACOBIAN 32
 #define BLOCK_SIZE_DELTA 64
+#define BLOCK_SIZE_HESSIAN_UPDATE 32
 #define BLOCK_SIZE_CHOLESKY_DECOMPOSITION 32
 
 
@@ -66,6 +67,9 @@ void CLDeviceContextInit(CLDeviceContext * devContext, CLPlatform platform, CLDe
 	//kernelDelta
 	devContext->kernelDelta = CLCreateKernel(devContext->program, kDelta);
 
+	//kernelUpdateDiagonal
+	devContext->kernelUpdateDiagonal = CLCreateKernel(devContext->program, kUpdateDiagonal);
+
 	//kernelCholeskyDecomposition
 	devContext->kernelCholeskyDecomposition = CLCreateKernel(devContext->program, kCholeskyDecomposition);
 }
@@ -80,6 +84,7 @@ void CLDeviceContextCleanUp(CLDeviceContext * devContext)
 	CLReleaseKernel(devContext->kernelChiSquaredReduce, kChiSquaredReduce);
 	CLReleaseKernel(devContext->kernelJacobian, kJacobian);
 	CLReleaseKernel(devContext->kernelDelta, kDelta);
+	CLReleaseKernel(devContext->kernelUpdateDiagonal, kUpdateDiagonal);
 	CLReleaseKernel(devContext->kernelCholeskyDecomposition, kCholeskyDecomposition);
 
 	CLReleaseProgram(devContext->program, "Kernels.ocl");
@@ -696,13 +701,35 @@ void CLNetCalculateD(CLNet * net, CLDeviceContext * devContext)
 	CLReleaseEvent(eventD, "eventDelta");
 }
 
+void CLNetUpdateHessianDiagonal(CLNet * net, CLDeviceContext * devContext, CLNetDataType mult)
+{
+	CLEvent eventUpdateDiagonal;
+
+	CLSize lws[] = {BLOCK_SIZE_HESSIAN_UPDATE};
+	CLSize gws[] = {CLGetOptimalGlobalWorkItemsSize(net->hessian->rows, lws[0])};
+
+	CLUInt nArgs = 0;
+	CLKernel kernelUpdateDiagonal = devContext->kernelUpdateDiagonal;
+	CLSetKernelArg(kernelUpdateDiagonal, nArgs++, sizeof(net->hessian->mem), &net->hessian->mem, net->hessian->name);
+	CLSetKernelArg(kernelUpdateDiagonal, nArgs++, sizeof(net->hessian->rows), &net->hessian->rows, "dim");
+	CLSetKernelArg(kernelUpdateDiagonal, nArgs++, sizeof(mult), &mult, "mult");
+
+	CLEnqueueNDRangeKernel(devContext->queue, kernelUpdateDiagonal, 1, NULL, gws, lws, 0, NULL, &eventUpdateDiagonal, "updateHessianDiagonal");
+	CLWaitForEvent(&eventUpdateDiagonal, "eventUpdateDiagonal");
+
+#pragma BENCHMARK_UPDATE_HESSIAN_DIAGONAL
+	//TODO: inserire il benchmark
+
+	CLReleaseEvent(eventUpdateDiagonal, "eventUpdateDiagonal");
+}
+
 void TESTCholeskyDecomposition(CLNet * net, CLDeviceContext * devContext)
 {
 	printMatrixToFile(devContext, net->cholesky, "/Volumes/RamDisk/TESTForward/cholMac.txt");
 	printf("ill: %d\n", net->ill);
 }
 
-void CLNetCholeskyDecomposition(CLNet * net, CLDeviceContext * devContext, CLNetDataType mult)
+void CLNetCholeskyDecomposition(CLNet * net, CLDeviceContext * devContext)
 {
 	CLNetMemSetMatrix(net, devContext, net->choleskySums, 0);
 
@@ -712,7 +739,6 @@ void CLNetCholeskyDecomposition(CLNet * net, CLDeviceContext * devContext, CLNet
 	CLUInt nArg = 0;
 	CLKernel kernelCholeskyDecomposition = devContext->kernelCholeskyDecomposition;
 	CLSetKernelArg(kernelCholeskyDecomposition, nArg++, sizeof(net->cholesky->mem), &net->cholesky->mem, net->cholesky->name);
-	CLSetKernelArg(kernelCholeskyDecomposition, nArg++, sizeof(CLNetDataType), &mult, "alpha");
 	CLSetKernelArg(kernelCholeskyDecomposition, nArg++, sizeof(net->hessian->mem), &net->hessian->mem, net->hessian->name);
 	CLSetKernelArg(kernelCholeskyDecomposition, nArg++, sizeof(net->choleskySums->mem), &net->choleskySums->mem, net->choleskySums->name);
 	CLSetKernelArg(kernelCholeskyDecomposition, nArg++, sizeof(CLUInt), &net->nWeights, "npar");
@@ -847,7 +873,8 @@ void CLNetTrainLMA(CLNet * net, CLDeviceContext * devContext)
 		//Non si può sostituire con il do/while per via della seconda condizione
 		while (ill && (i < net->maxIterations)) {
 
-			CLNetCholeskyDecomposition(net, devContext, mult);		//Calcolo della decomposizione di Cholesky e la diagonale di hessian viene moltiplicata per mult
+			CLNetUpdateHessianDiagonal(net, devContext, mult);	//Aggiorno la diagonale dell'hessian
+			CLNetCholeskyDecomposition(net, devContext);		//Calcolo della decomposizione di Cholesky
 			ill = net->ill;
 
 			if (!ill) {
@@ -979,7 +1006,7 @@ void CLNetTrainWithDeviceContext(CLNet * net, CLDeviceContext * devContext)
 		net->weightsPerLayer[i]->offsetMem = offset;
 		net->weightsPerLayer[i]->mem = net->weights->mem;
 		clRetainMemObject(net->weights->mem);
-		offset += net->weightsPerLayer[i - 1]->elements;
+		offset += net->weightsPerLayer[i]->elements;
 	}
 	free(weightsPerLayerName);
 	weightsPerLayerName = NULL;
