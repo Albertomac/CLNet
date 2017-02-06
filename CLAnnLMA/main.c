@@ -20,10 +20,10 @@ CLInt deviceIndex = 2;
 CLPlatform platform;
 CLDevice device;
 
-void fillRandom(CLNetDataType * values, CLUInt nValues, CLNetDataType mult)
+void fillRandom(CLNetDataType * values, CLUInt nValues, CLNetDataType mult, CLNetDataType shift)
 {
 	for(CLUInt i = 0; i < nValues; ++i) {
-		values[i] = CLRandomValue() * mult;
+		values[i] = CLRandomValue() * mult + shift;
 	}
 }
 
@@ -50,7 +50,7 @@ void setupNetForXOR(CLNet * net)
 	CLUInt nLayers = 2;
 	CLUInt nTargets = 1;
 
-	CLUInt neuronsPerLayer[] = {10, nTargets};
+	CLUInt neuronsPerLayer[] = {10, 1};
 	CLActivation activationFunctionPerLayer[] = {CLActivationTansig, CLActivationLinear};
 
 	CLNetDataType _inputs[] = {0, 0, 0, 1, 1, 0, 1, 1};
@@ -60,9 +60,9 @@ void setupNetForXOR(CLNet * net)
 	CLNetInit(net, nPatterns, nInputs, _inputs,
 			  nLayers, neuronsPerLayer, activationFunctionPerLayer,
 			  nTargets, _targets,
-			  name, CLFalse, 0, 0);
+			  name, CLFalse, 0, 1);
 
-	fillRandom(net->w, net->nWeights, 1);
+	fillRandom(net->w, net->nWeights, 1, 0);
 }
 
 void setupNetForIris(CLNet * net)
@@ -73,8 +73,8 @@ void setupNetForIris(CLNet * net)
 	CLUInt nLayers = 3;
 	CLUInt nTargets = 3;
 
-	CLUInt neuronsPerLayer[] = {7, 5, nTargets};
-	CLActivation activationPerLayer[] = {CLActivationTansig, CLActivationSigmoid, CLActivationLinear};
+	CLUInt neuronsPerLayer[] = {7, 5, 3};
+	CLActivation activationPerLayer[] = {CLActivationRadbas, CLActivationTansig, CLActivationLinear};
 
 	CLMatrix * patterns = calloc(1, sizeof(CLMatrix));
 	CLMatrixInitWithCSV(patterns, "irisInputs.csv");
@@ -86,13 +86,14 @@ void setupNetForIris(CLNet * net)
 	CLNetInit(net, nPatterns, nInputs, patterns->values,
 			  nLayers, neuronsPerLayer, activationPerLayer,
 			  nTargets, targets->values,
-			  name, CLTrue, 30, 1);
-	fillRandom(net->w, net->nWeights, 1);
+			  name, CLTrue, 0, 1);
+	fillRandom(net->w, net->nWeights, 1, 0);
 }
 
 CLNetDataType function(CLNetDataType x)
 {
-	return (sin(x) + 4 * cos(x)) / log(1 + sqrt(x));
+//	return (sin(x) + 4 * cos(x)) / log(1 + sqrt(x));
+	return 2 * cos(10 * x) * sin(10 * x);
 }
 
 void setupForFunction(CLNet * net)
@@ -103,27 +104,27 @@ void setupForFunction(CLNet * net)
 	CLUInt nLayers = 3;
 	CLUInt nTargets = 1;
 
-	CLUInt neuronsPerLayer[] = {10, 7, nTargets};
+	CLUInt neuronsPerLayer[] = {10, 7, 1};
 	CLActivation activationPerLayer[] = {CLActivationRadbas, CLActivationRadbas, CLActivationLinear};
 
 	CLNetDataType * _patterns = calloc(nPatterns, sizeof(CLNetDataType));
 	CLNetDataType * _targets = calloc(nPatterns, sizeof(CLNetDataType));
 
-	fillRandom(_patterns, nPatterns, 1);
+	fillRandom(_patterns, nPatterns, 1, 0);
 
 	for (CLUInt i = 0; i < nPatterns; ++i) {
 		_targets[i] = function(_patterns[i]);
 	}
 
 	normalize(_patterns, nPatterns);
-	normalize(_targets, nPatterns);
+//	normalize(_targets, nPatterns);
 
 	CLNetInit(net, nPatterns, nInputs, _patterns,
 			  nLayers, neuronsPerLayer, activationPerLayer,
 			  nTargets, _targets,
 			  name, CLTrue, 0, 1);
 
-	fillRandom(net->w, net->nWeights, 1);
+	fillRandom(net->w, net->nWeights, 1, 0);
 }
 
 void setupTEST(CLNet * net)
@@ -186,7 +187,7 @@ int main(int argc, const char * argv[]) {
 
 	CLNet * net = calloc(1, sizeof(CLNet));
 
-	switch (0) {
+	switch (2) {
 		case 0:
 			setupNetForXOR(net);
 			break;

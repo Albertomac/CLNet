@@ -13,16 +13,16 @@ __kernel void arrayMemSet(__global CLNetDataType * restrict array, uint elements
 
 //Activations
 //MARK:BIAS
-__kernel void activationLinear(__global CLNetDataType * restrict matrix, uint rows, uint columns)
-{
-	uint x = get_global_id(0);
-	uint y = get_global_id(1);
-
-	//MARK:BIAS
-	if (y == columns - 1) {
-		matrix[x * columns + y] = 1;
-	}
-}
+//__kernel void activationLinear(__global CLNetDataType * restrict matrix, uint rows, uint columns)
+//{
+//	uint x = get_global_id(0);
+//	uint y = get_global_id(1);
+//
+//	//MARK:BIAS
+//	if (y == columns - 1) {
+//		matrix[x * columns + y] = 1;
+//	}
+//}
 
 __kernel void activationSigmoid(__global CLNetDataType * restrict matrix, uint rows, uint columns)
 {
