@@ -827,12 +827,12 @@ void CLNetTrainLMA(CLNet * net, CLDeviceContext * devContext)
 	CLNetChiSquared(net, devContext);								//Calcolo dell'errore iniziale
 	error = net->errorChiSquared;
 
-	printMatrixToFile(devContext, net->trainingPatterns, "/Volumes/RamDisk/patterns.txt");
-	printMatrixToFile(devContext, net->activationPerLayer[0], "/Volumes/RamDisk/H0.txt");
-	printMatrixToFile(devContext, net->activationPerLayer[1], "/Volumes/RamDisk/H1.txt");
-	printMatrixToFile(devContext, net->activationPerLayer[2], "/Volumes/RamDisk/H2.txt");
-	printMatrixToFile(devContext, net->weights, "/Volumes/RamDisk/weights.txt");
-	printMatrixToFile(devContext, net->trainingTargets, "/Volumes/RamDisk/targets.txt");
+//	printMatrixToFile(devContext, net->trainingPatterns, "/Volumes/RamDisk/patterns.txt");
+//	printMatrixToFile(devContext, net->activationPerLayer[0], "/Volumes/RamDisk/H0.txt");
+//	printMatrixToFile(devContext, net->activationPerLayer[1], "/Volumes/RamDisk/H1.txt");
+//	printMatrixToFile(devContext, net->activationPerLayer[2], "/Volumes/RamDisk/H2.txt");
+//	printMatrixToFile(devContext, net->weights, "/Volumes/RamDisk/weights.txt");
+//	printMatrixToFile(devContext, net->trainingTargets, "/Volumes/RamDisk/targets.txt");
 
 	for (CLUInt i = 0; i < net->maxIterations; ++i) {
 
@@ -1060,9 +1060,9 @@ void CLNetTrainWithDeviceContext(CLNet * net, CLDeviceContext * devContext)
 
 	CLNetPrintForward(net, devContext);
 
-	printMatrixToFile(devContext, net->trainingPatterns, "/Volumes/RamDisk/patterns.txt");
-	printMatrixToFile(devContext, net->trainingTargets, "/Volumes/RamDisk/targets.txt");
-	printMatrixToFile(devContext, net->outputs, "/Volumes/RamDisk/outputs.txt");
+//	printMatrixToFile(devContext, net->trainingPatterns, "/Volumes/RamDisk/patterns.txt");
+//	printMatrixToFile(devContext, net->trainingTargets, "/Volumes/RamDisk/targets.txt");
+//	printMatrixToFile(devContext, net->outputs, "/Volumes/RamDisk/outputs.txt");
 }
 
 void CLNetPrintResultsWithInputs(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * inputs)

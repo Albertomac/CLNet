@@ -16,6 +16,9 @@ else
 endif
 
 
+#CLBLAS_PATH=/home/bilotta/src/clBLAS
+#CFLAGS+=-I $(CLBLAS_PATH)/src
+#LDLIBS+=-L $(CLBLAS_PATH)/build/library -lclBLAS -lm
 
 CLNet:
 	$(CC) $(CFLAGS) *.c -o CLNet $(LDLIBS)
