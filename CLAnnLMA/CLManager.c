@@ -243,7 +243,7 @@ CLProgram CLCreateProgramWithMacro(CLContext context, CLDevice device, CLStringC
 	program = clCreateProgramWithSource(context, 1, &ptrBuff, NULL, &error);
 	CLErrorCheck(error, "clCreateProgramWithSource", "create program", CHECK_EXIT);
 
-	error = clBuildProgram(program, 1, &device, "-I. -Werror -cl-no-signed-zeros", NULL, NULL);
+	error = clBuildProgram(program, 1, &device, "-I. -Werror", NULL, NULL);
 	CLErrorCheck(error, "clBuildProgram", "build program", CHECK_NOT_EXIT);
 
 	error = clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, BUFFER_SIZE, buffer, NULL);

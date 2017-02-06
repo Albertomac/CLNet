@@ -2,6 +2,10 @@
 #define FALSE 0
 #define DEBUG TRUE
 
+//#if CLNetDataType == double
+//	#pragma OPENCL EXTENSION cl_khr_fp64 : enable
+//#endif
+
 __kernel void arrayMemSet(__global CLNetDataType * restrict array, uint elements, CLNetDataType value)
 {
 	const uint id = get_global_id(0);

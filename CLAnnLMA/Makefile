@@ -1,18 +1,21 @@
 CFLAGS=-std=c99 -Wall -Wextra -g -O3 -march=native -Wno-unknown-pragmas
 
-CLBLAS_PATH=/usr/local
 
 uname_S := $(shell uname -s)
 
 ifeq ($(uname_S),Darwin)
-	LDLIBS=-framework OpenCL
+
+	CLBLAS_PATH=/usr/local
 
 	CFLAGS+=-I $(CLBLAS_PATH)/include
-	LDLIBS+=-L $(CLBLAS_PATH)/lib -lclBLAS
+	LDLIBS=-framework OpenCL -L $(CLBLAS_PATH)/lib -lclBLAS
 
 else
-	LDLIBS=-lrt -lOpenCL -lbsd -lclBLAS
-	CFLAGS+= -D_DEFAULT_SOURCE
+
+	CLBLAS_PATH=/home/studenti/Documents/clBLAS
+
+	CFLAGS+= -D_DEFAULT_SOURCE -I $(CLBLAS_PATH)/src
+	LDLIBS=-lrt -lOpenCL -lbsd -L $(CLBLAS_PATH)/build/library -lclBLAS -lm
 endif
 
 
