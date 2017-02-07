@@ -763,6 +763,14 @@ void CLNetCholeskyDecomposition(CLNet * net, CLDeviceContext * devContext)
 	free(illResult);
 	illResult = NULL;
 
+#pragma mark BENCHMARK_CHOLESKY_DECOMPOSITION
+	if (net->benchmark == CLTrue) {
+		CLDouble time = timeBetweenEventsNS(eventCholeskyDecomposition[0], eventCholeskyDecomposition[net->cholesky->rows - 1]);
+		CLDouble flops = 1;
+
+		printStat(flops, time, "choleskyDecomposition");
+	}
+
 	//
 	for (CLUInt i = 0; i < net->cholesky->rows; ++i) {
 		CLWaitForEvent(&eventCholeskyDecomposition[i], "eventCholeskyDecomposition");
@@ -842,6 +850,17 @@ void CLNetUpdateWeightsWithDelta(CLNet * net, CLDeviceContext * devContext)
 
 void CLNetTrainLMA(CLNet * net, CLDeviceContext * devContext)
 {
+	net->benchmark = CLFalse;
+
+	CLMatrixPrintStats(net->trainingPatterns);
+	for (CLUInt i = 0; i < net->nLayers; ++i) {
+		CLMatrixPrintStats(net->weightsPerLayer[i]);
+		CLMatrixPrintStats(net->activationPerLayer[i]);
+		printf("%d", net->activationFunctionPerLayer[i]);
+	}
+	CLMatrixPrintStats(net->trainingTargets);
+
+
 	CLNetDataType mult;
 	CLNetDataType lambda = net->initialLambda;
 	CLNetDataType error = -1.0f;
