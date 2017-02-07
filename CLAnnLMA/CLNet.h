@@ -25,9 +25,13 @@ typedef struct {
 
 	CLKernel kernelMemSet;
 	CLKernel * kernelsActivation;
+	CLKernel * kernelsDerivatives;
 	CLKernel kernelChiSquared;
 	CLKernel kernelChiSquaredReduce;
+
+	CLKernel kernelJacobianDiagonal;
 	CLKernel kernelJacobian;
+	
 	CLKernel kernelDelta;
 	CLKernel kernelUpdateDiagonal;
 	CLKernel kernelCholeskyDecomposition;
@@ -73,9 +77,10 @@ typedef struct {
 	CLMatrix * weights;
 	CLMatrix * weightsTemp;
 	CLMatrix ** weightsPerLayer;
-	CLMatrix ** valuesPerLayer; //Valori dei neuroni prima dell'attivazione
-	CLMatrix ** activationPerLayer;	//Valori dei neuroni dopo l'attivazione
-	CLMatrix * outputs; //Pointer to last CLMatrix in activationPerLayer
+	CLMatrix ** valuesPerLayer;			//Valori dei neuroni prima dell'attivazione
+	CLMatrix ** derivativesPerLayer;	//Valori delle derivate dei neuroni usando i valuesPerLayer
+	CLMatrix ** activationPerLayer;		//Valori dei neuroni dopo l'attivazione
+	CLMatrix * outputs;					//Pointer to last CLMatrix in activationPerLayer
 	CLMatrix * testTargets;
 	CLMatrix * trainingTargets;
 
@@ -83,6 +88,7 @@ typedef struct {
 	CLNetDataType errorChiSquared;
 
 	CLBool partialJacobianFilled;
+	CLMatrix ** jacobianPerLayer;
 	CLMatrix * jacobian;
 	CLMatrix * hessian;
 	CLMatrix * d;

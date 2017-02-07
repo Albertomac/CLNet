@@ -80,6 +80,47 @@ __kernel void activationRadbas(__global CLNetDataType * restrict activatedMatrix
 	}
 }
 
+//derivatives
+__kernel void derivativeSigmoid(__global CLNetDataType * restrict derivativesMatrix,
+								__global const CLNetDataType * restrict valuesMatrix,
+								uint rows, uint columns)
+{
+	uint x = get_global_id(0);
+	uint y = get_global_id(1);
+
+	if (x < rows && y < columns) {
+		CLNetDataType value = 1 / (1 + exp(- valuesMatrix[x * columns + y]));
+		derivativesMatrix[x * columns + y] = value * (1 - value);
+	}
+}
+
+__kernel void derivativeTansig(__global CLNetDataType * restrict derivativesMatrix,
+							   __global const CLNetDataType * restrict valuesMatrix,
+							   uint rows, uint columns)
+{
+	uint x = get_global_id(0);
+	uint y = get_global_id(1);
+
+	if (x < rows && y < columns) {
+		CLNetDataType value = 2 / (1 + exp(-2 * valuesMatrix[x * columns + y])) - 1;
+		derivativesMatrix[x * columns + y] = 1 - value * value;
+	}
+}
+
+__kernel void derivativeRadbas(__global CLNetDataType * restrict derivativesMatrix,
+							   __global const CLNetDataType * restrict valuesMatrix,
+							   uint rows, uint columns)
+{
+	uint x = get_global_id(0);
+	uint y = get_global_id(1);
+
+	if (x < rows && y < columns) {
+		CLNetDataType value = valuesMatrix[x * columns + y];
+		derivativesMatrix[x * columns + y] = -2 * exp(-(value * value)) * value;
+	}
+}
+
+
 
 //Chi Squared
 static void inline reduceInline(uint localId, __global CLNetDataType * restrict partialSums, __local CLNetDataType * localSums)
@@ -144,6 +185,19 @@ __kernel void jacobian(__global CLNetDataType * restrict jacobian,
 			}
 		}
 	}
+}
+
+__kernel void jacobianDiagonal(__global CLNetDataType * restrict jacobian, uint offsetJacobian, uint rowsJacobian, uint columnsJacobian,
+							   __global const CLNetDataType * restrict values, uint dimDiag)
+{
+	uint x = get_global_id(0);
+	uint y_old = get_global_id(1);
+	uint y = y_old + offsetJacobian;
+
+	if (x >= rowsJacobian || y >= columnsJacobian) return;
+
+	CLNetDataType value = values[y_old / dimDiag];
+	jacobian[x * columnsJacobian + y] = (mod(x, dimDiag) == mod(y_old, dimDiag)) * value;
 }
 
 
