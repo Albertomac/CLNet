@@ -73,7 +73,8 @@ typedef struct {
 	CLMatrix * weights;
 	CLMatrix * weightsTemp;
 	CLMatrix ** weightsPerLayer;
-	CLMatrix ** activationPerLayer;
+	CLMatrix ** valuesPerLayer; //Valori dei neuroni prima dell'attivazione
+	CLMatrix ** activationPerLayer;	//Valori dei neuroni dopo l'attivazione
 	CLMatrix * outputs; //Pointer to last CLMatrix in activationPerLayer
 	CLMatrix * testTargets;
 	CLMatrix * trainingTargets;

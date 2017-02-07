@@ -286,6 +286,12 @@ void CLNetInit(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * pa
 		net->weightsPerLayer[i] = calloc(1, sizeof(CLMatrix));
 	}
 
+	//valuesPerLayer
+	net->valuesPerLayer = calloc(net->nLayers, sizeof(CLMatrix));
+	for (CLUInt i = 0; i < net->nLayers; ++i) {
+		net->valuesPerLayer[i] = calloc(1, sizeof(CLMatrix));
+	}
+
 	//activationPerLayer
 	net->activationPerLayer = calloc(net->nLayers, sizeof(CLMatrix));
 	for (CLUInt i = 0; i < net->nLayers; ++i) {
@@ -383,24 +389,32 @@ void CLNetMatrixMultiply(CLNet * net, CLDeviceContext * devContext,
 	}
 }
 
-void CLNetActivationLayer(CLNet * net, CLDeviceContext * devContext, CLMatrix * layer, CLActivation activationFunction, CLEvent * event)
+void CLNetActivationLayer(CLNet * net, CLDeviceContext * devContext, CLMatrix * activatedLayer, CLMatrix * valuesLayer, CLActivation activationFunction, CLEvent * event)
 {
 	if (activationFunction == CLActivationLinear) {
+
+		//TODO: funziona solo quando l'ultimo layer è quello di output! Aggiungere la possibilità di avere hiddenLayer con attivazione lineare
+		CLInt status = clEnqueueCopyBuffer(devContext->queue, valuesLayer->mem, activatedLayer->mem, 0, 0, valuesLayer->size, 0, NULL, event);
+		CLErrorCheck(status, "eventActivationLinear", activatedLayer->name, CHECK_EXIT);
+
+		CLWaitForEvent(event, "eventReloadWeights");
+
 		return;
 	}
 
 	CLSize lws[] = {BLOCK_SIZE_ACTIVATION,
 					BLOCK_SIZE_ACTIVATION};
-	CLSize gws[] = {CLGetOptimalGlobalWorkItemsSize(layer->rows, lws[0]),
-					CLGetOptimalGlobalWorkItemsSize(layer->columns, lws[1])};
+	CLSize gws[] = {CLGetOptimalGlobalWorkItemsSize(valuesLayer->rows, lws[0]),
+					CLGetOptimalGlobalWorkItemsSize(valuesLayer->columns, lws[1])};
 
 	CLUInt nArg = 0;
 	CLKernel kernelActivation = devContext->kernelsActivation[activationFunction];
-	CLSetKernelArg(kernelActivation, nArg++, sizeof(layer->mem), &layer->mem, layer->name);
-	CLSetKernelArg(kernelActivation, nArg++, sizeof(layer->rows), &layer->rows, "rows");
-	CLSetKernelArg(kernelActivation, nArg++, sizeof(layer->columns), &layer->columns, "columns");
+	CLSetKernelArg(kernelActivation, nArg++, sizeof(activatedLayer->mem), &activatedLayer->mem, activatedLayer->name);
+	CLSetKernelArg(kernelActivation, nArg++, sizeof(valuesLayer->mem), &valuesLayer->mem, valuesLayer->name);
+	CLSetKernelArg(kernelActivation, nArg++, sizeof(valuesLayer->rows), &valuesLayer->rows, "rows");
+	CLSetKernelArg(kernelActivation, nArg++, sizeof(valuesLayer->columns), &valuesLayer->columns, "columns");
 
-	CLEnqueueNDRangeKernel(devContext->queue, kernelActivation, 2, NULL, gws, lws, 0, NULL, event, layer->name);
+	CLEnqueueNDRangeKernel(devContext->queue, kernelActivation, 2, NULL, gws, lws, 0, NULL, event, valuesLayer->name);
 	CLWaitForEvent(event, "eventActivation");
 }
 
@@ -413,24 +427,25 @@ void TESTForward(CLNet * net, CLDeviceContext * devContext)
 
 void CLNetForward(CLNet * net, CLDeviceContext * devContext)
 {
+	//TODO: sistemare la moltiplicazione per matrici in presenza di bias!
 	CLEvent * eventsMultiply = calloc(net->nLayers, sizeof(CLEvent));
 	CLEvent * eventsActivation = calloc(net->nLayers, sizeof(CLEvent));
 
 	CLNetMatrixMultiply(net, devContext,
 						net->trainingPatterns, clblasNoTrans,
 						net->weightsPerLayer[0], clblasNoTrans,
-						net->activationPerLayer[0], &eventsMultiply[0]);
+						net->valuesPerLayer[0], &eventsMultiply[0]);
 
-	CLNetActivationLayer(net, devContext, net->activationPerLayer[0], net->activationFunctionPerLayer[0], &eventsActivation[0]);
+	CLNetActivationLayer(net, devContext, net->activationPerLayer[0], net->valuesPerLayer[0], net->activationFunctionPerLayer[0], &eventsActivation[0]);
 
 	//Hidden Layers
 	for (CLUInt i = 1; i < net->nLayers; ++i) {
 		CLNetMatrixMultiply(net, devContext,
 							net->activationPerLayer[i - 1], clblasNoTrans,
 							net->weightsPerLayer[i], clblasNoTrans,
-							net->activationPerLayer[i], &eventsMultiply[i]);
+							net->valuesPerLayer[i], &eventsMultiply[i]);
 
-		CLNetActivationLayer(net, devContext, net->activationPerLayer[i], net->activationFunctionPerLayer[i], &eventsActivation[i]);
+		CLNetActivationLayer(net, devContext, net->activationPerLayer[i], net->valuesPerLayer[i], net->activationFunctionPerLayer[i], &eventsActivation[i]);
 	}
 
 #pragma mark BENCHMARK_FORWARD
@@ -1030,6 +1045,16 @@ void CLNetTrainWithDeviceContext(CLNet * net, CLDeviceContext * devContext)
 	free(weightsPerLayerName);
 	weightsPerLayerName = NULL;
 
+	//valuesPerLayer
+	CLString valuesPerLayerName = calloc(BUFFER_STRING, sizeof(CLChar));
+	for (CLUInt i = 0; i < net->nLayers; ++i) {
+		snprintf(valuesPerLayerName, BUFFER_STRING - 1, "valuesPerLayer[%d]", i);
+		CLMatrixInit(net->valuesPerLayer[i], net->nTrainingPatterns, net->neuronsPerLayer[i], valuesPerLayerName);
+		CLMatrixCreateMem(net->valuesPerLayer[i], devContext->context, CL_MEM_READ_WRITE);
+	}
+	free(valuesPerLayerName);
+	valuesPerLayerName = NULL;
+
 	//activationPerLayer
 	CLString activationPerLayerName = calloc(BUFFER_STRING, sizeof(CLChar));
 	for (CLUInt i = 0; i < net->nLayers; ++i) {
@@ -1134,6 +1159,7 @@ void CLNetCleanUp(CLNet * net)
 
 	for (CLUInt i = 0; i < net->nLayers; ++i) {
 		CLMatrixRelease(net->weightsPerLayer[i]);
+		CLMatrixRelease(net->valuesPerLayer[i]);
 		CLMatrixRelease(net->activationPerLayer[i]);
 	}
 
