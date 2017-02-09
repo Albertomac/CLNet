@@ -14,110 +14,105 @@ __kernel void arrayMemSet(__global CLNetDataType * restrict array, uint elements
 	}
 }
 
-
 //Activations
-//MARK:BIAS
-//__kernel void activationLinear(__global CLNetDataType * restrict matrix, uint rows, uint columns)
-//{
-//	uint x = get_global_id(0);
-//	uint y = get_global_id(1);
-//
-//	//MARK:BIAS
-//	if (y == columns - 1) {
-//		matrix[x * columns + y] = 1;
-//	}
-//}
+__kernel void activationLinear(__global CLNetDataType * restrict activatedMatrix,
+							   __global const CLNetDataType * restrict valuesMatrix,
+							   uint rows, uint columns)
+{
+	uint x = get_global_id(1);
+	uint y = get_global_id(0);
+
+	if (x >= rows || y >= columns) return;
+
+	activatedMatrix[x * columns + y] = valuesMatrix[x * columns + y];
+}
 
 __kernel void activationSigmoid(__global CLNetDataType * restrict activatedMatrix,
 								__global const CLNetDataType * restrict valuesMatrix,
 								uint rows, uint columns)
 {
-	uint x = get_global_id(0);
-	uint y = get_global_id(1);
+	uint x = get_global_id(1);
+	uint y = get_global_id(0);
 
-	if (x < rows && y < columns) {
-		activatedMatrix[x * columns + y] = 1 / (1 + exp(- valuesMatrix[x * columns + y]));
+	if (x >= rows || y >= columns) return;
 
-		//MARK:BIAS
-		if (y == columns - 1) {
-			activatedMatrix[x * columns + y] = 1;
-		}
-	}
+	activatedMatrix[x * columns + y] = 1 / (1 + exp(- valuesMatrix[x * columns + y]));
 }
 
 __kernel void activationTansig(__global CLNetDataType * restrict activatedMatrix,
 							   __global const CLNetDataType * restrict valuesMatrix,
 							   uint rows, uint columns)
 {
-    uint x = get_global_id(0);
-    uint y = get_global_id(1);
+    uint x = get_global_id(1);
+    uint y = get_global_id(0);
 
-	if (x < rows && y < columns) {
-		activatedMatrix[x * columns + y] = 2 / (1 + exp(-2 * valuesMatrix[x * columns + y])) - 1;
-
-		//MARK:BIAS
-		if (y == columns - 1) {
-			activatedMatrix[x * columns + y] = 1;
-		}
-	}
+	if (x >= rows || y >= columns) return;
+	activatedMatrix[x * columns + y] = 2 / (1 + exp(-2 * valuesMatrix[x * columns + y])) - 1;
 }
 
 __kernel void activationRadbas(__global CLNetDataType * restrict activatedMatrix,
 							   __global const CLNetDataType * restrict valuesMatrix,
 							   uint rows, uint columns)
 {
-	uint x = get_global_id(0);
-	uint y = get_global_id(1);
+	uint x = get_global_id(1);
+	uint y = get_global_id(0);
 
-	if (x < rows && y < columns) {
-		CLNetDataType val = valuesMatrix[x * columns + y];
-		activatedMatrix[x * columns + y] = exp(-(val * val));
-
-		//MARK: BIAS
-		if (y == columns - 1) {
-			activatedMatrix[x * columns + y] = 1;
-		}
-	}
+	if (x >= rows || y >= columns) return;
+	CLNetDataType val = valuesMatrix[x * columns + y];
+	activatedMatrix[x * columns + y] = exp(-(val * val));
 }
 
+
 //derivatives
+__kernel void derivativeLinear(__global CLNetDataType * restrict derivativesMatrix,
+							   __global const CLNetDataType * restrict valuesMatrix,
+							   uint rows, uint columns)
+{
+	uint x = get_global_id(1);
+	uint y = get_global_id(0);
+
+	if (x >= rows || y >= columns) return;
+
+	derivativesMatrix[x * columns + y] = 1;
+}
+
 __kernel void derivativeSigmoid(__global CLNetDataType * restrict derivativesMatrix,
 								__global const CLNetDataType * restrict valuesMatrix,
 								uint rows, uint columns)
 {
-	uint x = get_global_id(0);
-	uint y = get_global_id(1);
+	uint x = get_global_id(1);
+	uint y = get_global_id(0);
 
-	if (x < rows && y < columns) {
-		CLNetDataType value = 1 / (1 + exp(- valuesMatrix[x * columns + y]));
-		derivativesMatrix[x * columns + y] = value * (1 - value);
-	}
+	if (x >= rows || y >= columns) return;
+
+	CLNetDataType value = 1 / (1 + exp(- valuesMatrix[x * columns + y]));
+	derivativesMatrix[x * columns + y] = value * (1 - value);
 }
 
 __kernel void derivativeTansig(__global CLNetDataType * restrict derivativesMatrix,
 							   __global const CLNetDataType * restrict valuesMatrix,
 							   uint rows, uint columns)
 {
-	uint x = get_global_id(0);
-	uint y = get_global_id(1);
+	uint x = get_global_id(1);
+	uint y = get_global_id(0);
 
-	if (x < rows && y < columns) {
-		CLNetDataType value = 2 / (1 + exp(-2 * valuesMatrix[x * columns + y])) - 1;
-		derivativesMatrix[x * columns + y] = 1 - value * value;
-	}
+	if (x >= rows || y >= columns) return;
+
+	CLNetDataType value = 2 / (1 + exp(-2 * valuesMatrix[x * columns + y])) - 1;
+	derivativesMatrix[x * columns + y] = 1 - value * value;
 }
 
 __kernel void derivativeRadbas(__global CLNetDataType * restrict derivativesMatrix,
 							   __global const CLNetDataType * restrict valuesMatrix,
 							   uint rows, uint columns)
 {
-	uint x = get_global_id(0);
-	uint y = get_global_id(1);
+	uint x = get_global_id(1);
+	uint y = get_global_id(0);
 
-	if (x < rows && y < columns) {
-		CLNetDataType value = valuesMatrix[x * columns + y];
-		derivativesMatrix[x * columns + y] = -2 * exp(-(value * value)) * value;
-	}
+	if (x >= rows || y >= columns) return;
+
+	CLNetDataType value = valuesMatrix[x * columns + y];
+	derivativesMatrix[x * columns + y] = -2 * exp(-(value * value)) * value;
 }
 
 
@@ -187,17 +182,30 @@ __kernel void jacobian(__global CLNetDataType * restrict jacobian,
 	}
 }
 
+#define mod(x, y) (x) - (x)/(y) * (y)
+
 __kernel void jacobianDiagonal(__global CLNetDataType * restrict jacobian, uint offsetJacobian, uint rowsJacobian, uint columnsJacobian,
-							   __global const CLNetDataType * restrict values, uint dimDiag)
+							   __global const CLNetDataType * restrict values, uint rowsValues, uint columnsValues, uint dimDiag)
 {
-	uint x = get_global_id(0);
-	uint y_old = get_global_id(1);
+	uint x = get_global_id(1);
+	uint y_old = get_global_id(0);
 	uint y = y_old + offsetJacobian;
 
 	if (x >= rowsJacobian || y >= columnsJacobian) return;
 
-	CLNetDataType value = values[y_old / dimDiag];
+	CLNetDataType value = values[(x / dimDiag * columnsValues) + (y_old / dimDiag)];
 	jacobian[x * columnsJacobian + y] = (mod(x, dimDiag) == mod(y_old, dimDiag)) * value;
+}
+
+__kernel void jacobianMultiply(__global CLNetDataType * restrict jacobian, uint rowsJacobian, uint columnsJacobian,
+							   __global const CLNetDataType * restrict values)
+{
+	uint x = get_global_id(1);
+	uint y = get_global_id(0);
+
+	if (x >= rowsJacobian || y >= columnsJacobian) return;
+
+	jacobian[x * columnsJacobian + y] *= values[x];
 }
 
 

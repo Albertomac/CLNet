@@ -205,10 +205,15 @@ void CLMatrixPrint(CLMatrix * matrix, CLMatrixTranspose transpose)
 	CLUInt rows = (transpose == CLMatrixTrans) ? matrix->columns : matrix->rows;
 	CLUInt cols = (transpose == CLMatrixTrans) ? matrix->rows : matrix->columns;
 
+	for (CLUInt c = 0; c < cols; ++c) {
+		printf("%7d ", c);
+	}
+	printf("\n");
+
 	for (CLUInt r = 0; r < rows; ++r) {
 		for (CLUInt c = 0; c < cols; ++c) {
 			CLUInt index = (transpose == CLMatrixTrans) ? c * cols + r : r * cols + c;
-			printf("%0.2f ", matrix->values[index]);
+			printf("%+0.4f ", matrix->values[index]);
 
 		}
 		printf("\n");

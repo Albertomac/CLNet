@@ -30,6 +30,7 @@ typedef struct {
 	CLKernel kernelChiSquaredReduce;
 
 	CLKernel kernelJacobianDiagonal;
+	CLKernel kernelJacobianMultiply;
 	CLKernel kernelJacobian;
 	
 	CLKernel kernelDelta;
@@ -57,7 +58,6 @@ typedef enum CLActivation_ {
 typedef struct {
 
 	CLString name;
-	CLUInt bias;
 	CLUInt nPatterns;
 	CLUInt nInputs;
 	CLUInt nLayers;
@@ -114,7 +114,7 @@ typedef struct {
 void CLNetInit(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * patterns,
 			   CLUInt nLayers, CLUInt * neuronsPerLayer, CLActivation * activationFunctionPerLayer,
 			   CLUInt nTargets, CLNetDataType * targets,
-			   CLStringConst name, CLBool shufflePattners, CLUInt nTestPatterns, CLUInt nBias);
+			   CLStringConst name, CLBool shufflePattners, CLUInt nTestPatterns);
 
 //void CLNetInitWithFile(CLNet * net, CLStringConst fileName);
 

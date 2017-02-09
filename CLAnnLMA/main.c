@@ -23,7 +23,7 @@ CLDevice device;
 void fillRandom(CLNetDataType * values, CLUInt nValues, CLNetDataType mult, CLNetDataType shift)
 {
 	for(CLUInt i = 0; i < nValues; ++i) {
-		values[i] = CLRandomValue() * mult + shift;
+		values[i] = 1;//CLRandomValue() * mult + shift;
 	}
 }
 
@@ -50,7 +50,7 @@ void setupNetForXOR(CLNet * net)
 	CLUInt nLayers = 2;
 	CLUInt nTargets = 1;
 
-	CLUInt neuronsPerLayer[] = {10, 1};
+	CLUInt neuronsPerLayer[] = {3, 1};
 	CLActivation activationFunctionPerLayer[] = {CLActivationTansig, CLActivationLinear};
 
 	CLNetDataType _inputs[] = {0, 0, 0, 1, 1, 0, 1, 1};
@@ -60,7 +60,7 @@ void setupNetForXOR(CLNet * net)
 	CLNetInit(net, nPatterns, nInputs, _inputs,
 			  nLayers, neuronsPerLayer, activationFunctionPerLayer,
 			  nTargets, _targets,
-			  name, CLFalse, 0, 1);
+			  name, CLFalse, 0);
 
 	fillRandom(net->w, net->nWeights, 1, 0);
 }
@@ -86,7 +86,7 @@ void setupNetForIris(CLNet * net)
 	CLNetInit(net, nPatterns, nInputs, patterns->values,
 			  nLayers, neuronsPerLayer, activationPerLayer,
 			  nTargets, targets->values,
-			  name, CLTrue, 0, 1);
+			  name, CLTrue, 0);
 	fillRandom(net->w, net->nWeights, 1, 0);
 }
 
@@ -99,13 +99,13 @@ CLNetDataType function(CLNetDataType x)
 void setupForFunction(CLNet * net)
 {
 	CLString name = "Function";
-	CLUInt nPatterns = 200;
+	CLUInt nPatterns = 250;
 	CLUInt nInputs = 1;
 	CLUInt nLayers = 3;
 	CLUInt nTargets = 1;
 
-	CLUInt neuronsPerLayer[] = {10, 7, 1};
-	CLActivation activationPerLayer[] = {CLActivationRadbas, CLActivationTansig, CLActivationLinear};
+	CLUInt neuronsPerLayer[] = {7, 5, 1};
+	CLActivation activationPerLayer[] = {CLActivationTansig, CLActivationTansig, CLActivationLinear};
 
 	CLNetDataType * _patterns = calloc(nPatterns, sizeof(CLNetDataType));
 	CLNetDataType * _targets = calloc(nPatterns, sizeof(CLNetDataType));
@@ -116,63 +116,15 @@ void setupForFunction(CLNet * net)
 		_targets[i] = function(_patterns[i]);
 	}
 
-	normalize(_patterns, nPatterns);
+//	normalize(_patterns, nPatterns);
 //	normalize(_targets, nPatterns);
 
 	CLNetInit(net, nPatterns, nInputs, _patterns,
 			  nLayers, neuronsPerLayer, activationPerLayer,
 			  nTargets, _targets,
-			  name, CLTrue, 0, 1);
+			  name, CLTrue, 0);
 
 	fillRandom(net->w, net->nWeights, 1, 0);
-}
-
-void setupTEST(CLNet * net)
-{
-	CLString name = "TEST";
-	CLUInt nPatterns = 4096;
-	CLUInt nInputs = 4;
-	CLUInt nLayers = 3;
-	CLUInt nTargets = 8;
-
-	CLUInt neuronsPerLayer[] = {8, 4, 8};
-	CLActivation activationFunctionPerLayer[] = {CLActivationRadbas, CLActivationRadbas, CLActivationLinear};
-
-	CLUInt _nInputs = nPatterns * nInputs;
-	CLNetDataType * _inputs = calloc(_nInputs, sizeof(CLNetDataType));
-
-	CLUInt _nWeights = nInputs * neuronsPerLayer[0] + neuronsPerLayer[0] * neuronsPerLayer[1] + neuronsPerLayer[1] * neuronsPerLayer[2];
-	CLNetDataType * _weights = calloc(_nWeights, sizeof(CLNetDataType));
-
-	CLUInt _nTargets = nPatterns * nTargets;
-	CLNetDataType * _targets = calloc(_nTargets, sizeof(CLNetDataType));
-
-	FILE * pFile = fopen("/Volumes/RamDisk/TESTForward/patterns.txt", "r");
-	for (CLUInt i = 0; i < _nInputs; ++i) {
-		fscanf(pFile, CLNetDataTypeScanf, &_inputs[i]);
-	}
-	fclose(pFile);
-
-	FILE * wFile = fopen("/Volumes/RamDisk/TESTForward/weights.txt", "r");
-	for (CLUInt i = 0; i < _nWeights; ++i) {
-		fscanf(wFile, CLNetDataTypeScanf, &_weights[i]);
-	}
-	fclose(wFile);
-
-	FILE * oFile = fopen("/Volumes/RamDisk/TESTForward/targets.txt", "r");
-	for (CLUInt i = 0; i < _nTargets; ++i) {
-		fscanf(oFile, CLNetDataTypeScanf, &_targets[i]);
-	}
-	fclose(oFile);
-
-	CLNetInit(net, nPatterns, nInputs, _inputs,
-			  nLayers, neuronsPerLayer, activationFunctionPerLayer,
-			  nTargets, _targets,
-			  name, CLFalse, 0, 0);
-
-	for (CLUInt i = 0; i < _nWeights; ++i) {
-		net->w[i] = _weights[i];
-	}
 }
 
 int main(int argc, const char * argv[]) {
@@ -200,10 +152,6 @@ int main(int argc, const char * argv[]) {
 			setupForFunction(net);
 			break;
 
-		case 3:
-			setupTEST(net);
-			break;
-
 		default:
 			break;
 	}
@@ -218,7 +166,6 @@ int main(int argc, const char * argv[]) {
 
 	if (ans == 'Y' || ans == 'y') CLMatrixSaveCSV(net->weights, "/Volumes/RamDisk/weights.csv");
 
-//	CLMatrixSaveCSV(net->weightsTemp, "/Volumes/RamDisk/weights.csv");
 	CLNetRelease(net);
 	CLDeviceContextRelease(devContext);
 	

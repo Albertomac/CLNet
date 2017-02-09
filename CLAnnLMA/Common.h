@@ -29,7 +29,7 @@
 #define debugLog(fmt, ...) \
 do { if (DEBUG_LOG) fprintf(stderr, fmt, __VA_ARGS__); } while (0)
 
-
+#define ramDisk "/Volumes/RamDisk"
 
 //Types
 #define CLPlatform cl_platform_id
@@ -89,11 +89,13 @@ do { if (DEBUG_LOG) fprintf(stderr, fmt, __VA_ARGS__); } while (0)
 //Kernels
 #define kMemSet					"arrayMemSet"
 
-#define nActivationFunctions 3
+#define nActivationFunctions 4
+#define kActivationLinear		"activationLinear"
 #define kActivationSigmoid		"activationSigmoid"
 #define kActivationTansig		"activationTansig"
 #define kActivationRadbas		"activationRadbas"
 
+#define kDerivativesLinear		"derivativeLinear"
 #define kDerivativeSigmoid		"derivativeSigmoid"
 #define kDerivativeTansig		"derivativeTansig"
 #define kDerivativeRadbas		"derivativeRadbas"
@@ -101,6 +103,7 @@ do { if (DEBUG_LOG) fprintf(stderr, fmt, __VA_ARGS__); } while (0)
 #define kChiSquared				"chiSquared"
 #define kChiSquaredReduce		"chiSquaredReduce"
 #define kJacobianDiagonal		"jacobianDiagonal"
+#define kJacobianMultiply		"jacobianMultiply"
 #define kJacobian				"jacobian"
 #define kDelta					"delta"
 #define kUpdateDiagonal			"updateDiagonal"
