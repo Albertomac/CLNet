@@ -159,29 +159,6 @@ __kernel void chiSquaredReduce(__global CLNetDataType * restrict partialSums, __
 	reduceInline(localId, partialSums, localSums);
 }
 
-
-
-//Jacobian
-__kernel void jacobian(__global CLNetDataType * restrict jacobian,
-					   __global CLNetDataType * restrict inputs,
-					   uint columnsG, uint rowsI, uint columnsI, uint offset, uint slope, uint yTimes)
-{
-	uint x = get_global_id(0);
-	uint y = get_global_id(1);
-
-	if (x < columnsI && y < rowsI) {
-
-		for (uint t = 0; t < yTimes; ++t) {
-
-			CLNetDataType value = inputs[y * columnsI + x];
-
-			for (uint i = 0; i < slope; ++i) {
-				jacobian[(y + rowsI * t) * columnsG + x * slope + i + offset] = value;
-			}
-		}
-	}
-}
-
 #define mod(x, y) (x) - (x)/(y) * (y)
 
 __kernel void jacobianDiagonal(__global CLNetDataType * restrict jacobian, uint offsetJacobian, uint rowsJacobian, uint columnsJacobian,

@@ -31,7 +31,6 @@ typedef struct {
 
 	CLKernel kernelJacobianDiagonal;
 	CLKernel kernelJacobianMultiply;
-	CLKernel kernelJacobian;
 	
 	CLKernel kernelDelta;
 	CLKernel kernelUpdateDiagonal;
@@ -51,8 +50,6 @@ typedef enum CLActivation_ {
 	CLActivationSigmoid,
 	CLActivationTansig,
 	CLActivationRadbas,
-	//TODO: programmarlo se viene facile
-	//CLActivationPerceptron
 } CLActivation;
 
 typedef struct {

@@ -79,9 +79,6 @@ void CLDeviceContextInit(CLDeviceContext * devContext, CLPlatform platform, CLDe
 	//kernelJacobianMultiply
 	devContext->kernelJacobianMultiply = CLCreateKernel(devContext->program, kJacobianMultiply);
 
-	//kernelJacobian
-	devContext->kernelJacobian = CLCreateKernel(devContext->program, kJacobian);
-
 	//kernelDelta
 	devContext->kernelDelta = CLCreateKernel(devContext->program, kDelta);
 
@@ -106,7 +103,6 @@ void CLDeviceContextCleanUp(CLDeviceContext * devContext)
 	CLReleaseKernel(devContext->kernelChiSquaredReduce, kChiSquaredReduce);
 	CLReleaseKernel(devContext->kernelJacobianDiagonal, kJacobianDiagonal);
 	CLReleaseKernel(devContext->kernelJacobianMultiply, kJacobianMultiply);
-	CLReleaseKernel(devContext->kernelJacobian, kJacobian);
 	CLReleaseKernel(devContext->kernelDelta, kDelta);
 	CLReleaseKernel(devContext->kernelUpdateDiagonal, kUpdateDiagonal);
 	CLReleaseKernel(devContext->kernelCholeskyDecomposition, kCholeskyDecomposition);
@@ -122,8 +118,8 @@ void CLDeviceContextCleanUp(CLDeviceContext * devContext)
 
 void printMatrix(CLDeviceContext * devContext, CLMatrix * matrix)
 {
-	CLMatrixUpdateValuesFromMem(matrix, devContext->queue);
-	CLMatrixPrint(matrix, CLMatrixNoTrans);
+//	CLMatrixUpdateValuesFromMem(matrix, devContext->queue);
+//	CLMatrixPrint(matrix, CLMatrixNoTrans);
 }
 
 void printMatrixToFile(CLDeviceContext * devContext, CLMatrix * matrix, CLStringConst path)
@@ -234,7 +230,6 @@ void CLNetInit(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * pa
 	//patterns
 	net->p = calloc(net->nPatterns * net->nInputs, sizeof(*patterns));
 	memcpy(net->p, patterns, sizeof(CLNetDataType) * net->nPatterns * net->nInputs);
-
 
 //	net->p = calloc(net->nPatterns * net->nInputs, sizeof(*patterns));
 //	if (net->bias > 0) {
@@ -631,9 +626,6 @@ void CLNetJacobianDiagonal(CLNet * net, CLDeviceContext * devContext, CLMatrix *
 	CLEnqueueNDRangeKernel(devContext->queue, kernelJacobianDiagonal, 2, NULL, gws, lws, 0, NULL, event, "jacobianDiagonal");
 	CLWaitForEvent(event, "eventJacobianDiagonal");
 
-	printf("JACOBIAN DIAGONAL\n");
-	printMatrix(devContext, jacobian);
-
 #pragma BENCHMARK_JACOBIAN_DIAGONAL
 	if (net->benchmark == CLTrue) {
 		CLDouble time = timeBetweenEventsNS(*event, *event);
@@ -659,8 +651,6 @@ void CLNetJacobianMultiply(CLNet * net, CLDeviceContext * devContext, CLMatrix *
 	CLEnqueueNDRangeKernel(devContext->queue, kernelJacobianMultiply, 2, NULL, gws, lws, 0, NULL, event, "jacobianMultiply");
 	CLWaitForEvent(event, "eventJacobianMultiply");
 
-	printf("JACOBIAN MULTIPLY\n");
-	printMatrix(devContext, jacobian);
 #pragma BENCHMARK_JACOBIAN_MULTIPLY
 	if (net->benchmark == CLTrue) {
 		CLDouble time = timeBetweenEventsNS(*event, *event);
@@ -929,12 +919,9 @@ void CLNetUpdateWeightsWithDelta(CLNet * net, CLDeviceContext * devContext)
 void CLNetTrainLMA(CLNet * net, CLDeviceContext * devContext)
 {
 
-//	CLMatrixPrint(net->weights, CLMatrixNoTrans);
-//	CLMatrixPrint(net->trainingPatterns, CLMatrixNoTrans);
-//	CLMatrixPrint(net->weightsPerLayer[0], CLMatrixNoTrans);
-//	CLMatrixPrint(net->valuesPerLayer[0], CLMatrixNoTrans);
-//	CLMatrixPrint(net->weightsPerLayer[1], CLMatrixNoTrans);
-//	CLMatrixPrint(net->valuesPerLayer[1], CLMatrixNoTrans);
+//	printMatrix(devContext, net->trainingPatterns);
+//	printMatrix(devContext, net->trainingTargets);
+//	printMatrix(devContext, net->weights);
 
 	net->benchmark = CLFalse;
 
@@ -958,7 +945,7 @@ void CLNetTrainLMA(CLNet * net, CLDeviceContext * devContext)
 		CLNetCalculateD(net, devContext);							//Calcolo array D
 
 		printMatrix(devContext, net->weights);
-		printMatrix(devContext, net->hessian);
+		printMatrix(devContext, net->jacobian);
 		printMatrix(devContext, net->d);
 
 		mult = 1 + lambda;											//Aggiornamento moltiplicatore
@@ -971,7 +958,10 @@ void CLNetTrainLMA(CLNet * net, CLDeviceContext * devContext)
 			ill = net->ill;
 
 			printMatrix(devContext, net->cholesky);
-			printf("\n/****** ILL: %d *******/\n", ill);
+
+			if (ill) {
+				printf("\n\n\n\n\n/****** ILL: %d *******/\n\n\n\n\n", ill);
+			}
 
 			if (!ill) {
 				CLNetCholeskySolve(net, devContext);				//Risoluzione di Cholesky per il calcolo dei delta dei pesi
@@ -990,7 +980,7 @@ void CLNetTrainLMA(CLNet * net, CLDeviceContext * devContext)
 
 			printf("it = %4d,   lambda = %10g,   err = %10g,   derr = %10g\n", i, lambda, error, deltaError);
 
-			if (isnan(newError) || lambda > 1e20) return;
+			if (isnan(newError) || lambda > 1e20 || lambda < 1e-20) return;
 
 			if (ill) {												//Se ill è ancora 1, vengono aggiornati i moltiplicatori
 				mult = (1 + lambda * net->upFactor)/(1 + lambda);
@@ -999,6 +989,7 @@ void CLNetTrainLMA(CLNet * net, CLDeviceContext * devContext)
 			}
 		}
 		CLNetUpdateWeightsTemp(net, devContext);					//I nuovi pesi vengono salvati
+		printMatrix(devContext, net->weights);
 
 		error = newError;
 		lambda /= net->downFactor;

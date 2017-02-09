@@ -23,7 +23,7 @@ CLDevice device;
 void fillRandom(CLNetDataType * values, CLUInt nValues, CLNetDataType mult, CLNetDataType shift)
 {
 	for(CLUInt i = 0; i < nValues; ++i) {
-		values[i] = 1;//CLRandomValue() * mult + shift;
+		values[i] = CLRandomValue() * mult + shift;
 	}
 }
 
@@ -62,7 +62,13 @@ void setupNetForXOR(CLNet * net)
 			  nTargets, _targets,
 			  name, CLFalse, 0);
 
-	fillRandom(net->w, net->nWeights, 1, 0);
+	fillRandom(net->w, net->nWeights, 4, -2);
+
+//	CLFloat _weights[] = {-0.358296722, -1.11181891, -0.875998139, -0.833521724, -0.770012856, -0.597140372, -1.11013341, -0.271296352, -0.373541415, -0.202476129, -0.825716734, -0.258527756, -0.874694645, -0.964434803, -1.05426013, -0.33673653, -0.601961553, -0.355955094, -0.895164907, -0.904570162, 1.07225227, -0.858597457, -2.14572215, -2.50301027, -0.867024899, 3.39165139, -0.0731235817, 5.88008213, -0.408898056, -0.321799964};
+
+//	for (CLUInt i = 0; i < net->nWeights; ++i) {
+//		net->w[i] = _weights[i];
+//	}
 }
 
 void setupNetForIris(CLNet * net)
@@ -94,12 +100,13 @@ CLNetDataType function(CLNetDataType x)
 {
 //	return (sin(x) + 4 * cos(x)) / log(1 + sqrt(x));
 	return 2 * cos(10 * x) * sin(10 * x);
+//	return sin(x) + cos(x);
 }
 
 void setupForFunction(CLNet * net)
 {
 	CLString name = "Function";
-	CLUInt nPatterns = 250;
+	CLUInt nPatterns = 50;
 	CLUInt nInputs = 1;
 	CLUInt nLayers = 3;
 	CLUInt nTargets = 1;
@@ -110,13 +117,13 @@ void setupForFunction(CLNet * net)
 	CLNetDataType * _patterns = calloc(nPatterns, sizeof(CLNetDataType));
 	CLNetDataType * _targets = calloc(nPatterns, sizeof(CLNetDataType));
 
-	fillRandom(_patterns, nPatterns, 1, 0);
+	fillRandom(_patterns, nPatterns, 3, 2);
 
 	for (CLUInt i = 0; i < nPatterns; ++i) {
 		_targets[i] = function(_patterns[i]);
 	}
 
-//	normalize(_patterns, nPatterns);
+	normalize(_patterns, nPatterns);
 //	normalize(_targets, nPatterns);
 
 	CLNetInit(net, nPatterns, nInputs, _patterns,
