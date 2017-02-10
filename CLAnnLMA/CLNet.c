@@ -135,12 +135,12 @@ void printMatrix(CLDeviceContext * devContext, CLMatrix * matrix)
 	CLMatrixUpdateValuesFromMem(matrix, devContext->queue);
 	CLMatrixPrint(matrix, CLMatrixNoTrans);
 
-	CLString path = calloc(BUFFER_STRING, sizeof(CLChar));
-	snprintf(path, BUFFER_STRING - 1, ramDisk"/%s.txt", matrix->name);
-	printMatrixToFile(devContext, matrix, path);
-
-	free(path);
-	path = NULL;
+//	CLString path = calloc(BUFFER_STRING, sizeof(CLChar));
+//	snprintf(path, BUFFER_STRING - 1, ramDisk"/%s.txt", matrix->name);
+//	printMatrixToFile(devContext, matrix, path);
+//
+//	free(path);
+//	path = NULL;
 }
 
 void swapRow(CLNetDataType * matrix, CLUInt rows, CLUInt columns, CLUInt fromRow, CLUInt toRow)
