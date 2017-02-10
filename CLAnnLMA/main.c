@@ -50,7 +50,7 @@ void setupNetForXOR(CLNet * net)
 	CLUInt nLayers = 2;
 	CLUInt nTargets = 1;
 
-	CLUInt neuronsPerLayer[] = {3, 1};
+	CLUInt neuronsPerLayer[] = {10, 1};
 	CLActivation activationFunctionPerLayer[] = {CLActivationTansig, CLActivationLinear};
 
 	CLNetDataType _inputs[] = {0, 0, 0, 1, 1, 0, 1, 1};
@@ -60,11 +60,11 @@ void setupNetForXOR(CLNet * net)
 	CLNetInit(net, nPatterns, nInputs, _inputs,
 			  nLayers, neuronsPerLayer, activationFunctionPerLayer,
 			  nTargets, _targets,
-			  name, CLFalse, 0);
+			  name, CLFalse, 0, CLFalse);
 
 	fillRandom(net->w, net->nWeights, 4, -2);
 
-//	CLFloat _weights[] = {-0.358296722, -1.11181891, -0.875998139, -0.833521724, -0.770012856, -0.597140372, -1.11013341, -0.271296352, -0.373541415, -0.202476129, -0.825716734, -0.258527756, -0.874694645, -0.964434803, -1.05426013, -0.33673653, -0.601961553, -0.355955094, -0.895164907, -0.904570162, 1.07225227, -0.858597457, -2.14572215, -2.50301027, -0.867024899, 3.39165139, -0.0731235817, 5.88008213, -0.408898056, -0.321799964};
+//	CLFloat _weights[] = {0.787020, 0.032042, 0.269297, 0.313040, 0.376689, 0.549111, 0.036677, 0.876073, 0.774661, 0.946820, 0.281833, 0.848981, 0.232944, 0.142625, 0.053538, 0.771335, 0.506342, 0.752660, 0.213712, 0.204351, 0.887152, 0.767608, 0.607750, 0.058241, 0.386845, 0.691405, 0.941201, 0.962479, 0.075253, 0.369933, 0.863612, 0.554582, 0.720409, 0.537345, 0.268498, 0.841953};
 
 //	for (CLUInt i = 0; i < net->nWeights; ++i) {
 //		net->w[i] = _weights[i];
@@ -92,15 +92,15 @@ void setupNetForIris(CLNet * net)
 	CLNetInit(net, nPatterns, nInputs, patterns->values,
 			  nLayers, neuronsPerLayer, activationPerLayer,
 			  nTargets, targets->values,
-			  name, CLTrue, 0);
+			  name, CLTrue, 0, CLTrue);
 	fillRandom(net->w, net->nWeights, 1, 0);
 }
 
 CLNetDataType function(CLNetDataType x)
 {
 //	return (sin(x) + 4 * cos(x)) / log(1 + sqrt(x));
-	return 2 * cos(10 * x) * sin(10 * x);
-//	return sin(x) + cos(x);
+//	return 2 * cos(10 * x) * sin(10 * x);
+	return sin(x) + cos(x);
 }
 
 void setupForFunction(CLNet * net)
@@ -129,7 +129,7 @@ void setupForFunction(CLNet * net)
 	CLNetInit(net, nPatterns, nInputs, _patterns,
 			  nLayers, neuronsPerLayer, activationPerLayer,
 			  nTargets, _targets,
-			  name, CLTrue, 0);
+			  name, CLTrue, 0, CLTrue);
 
 	fillRandom(net->w, net->nWeights, 1, 0);
 }

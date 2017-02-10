@@ -116,12 +116,6 @@ void CLDeviceContextCleanUp(CLDeviceContext * devContext)
 
 #pragma mark CLNet
 
-void printMatrix(CLDeviceContext * devContext, CLMatrix * matrix)
-{
-//	CLMatrixUpdateValuesFromMem(matrix, devContext->queue);
-//	CLMatrixPrint(matrix, CLMatrixNoTrans);
-}
-
 void printMatrixToFile(CLDeviceContext * devContext, CLMatrix * matrix, CLStringConst path)
 {
 	FILE * f = fopen(path, "w+");
@@ -134,6 +128,19 @@ void printMatrixToFile(CLDeviceContext * devContext, CLMatrix * matrix, CLString
 		fprintf(f, "\n");
 	}
 	fclose(f);
+}
+
+void printMatrix(CLDeviceContext * devContext, CLMatrix * matrix)
+{
+	CLMatrixUpdateValuesFromMem(matrix, devContext->queue);
+	CLMatrixPrint(matrix, CLMatrixNoTrans);
+
+	CLString path = calloc(BUFFER_STRING, sizeof(CLChar));
+	snprintf(path, BUFFER_STRING - 1, ramDisk"/%s.txt", matrix->name);
+	printMatrixToFile(devContext, matrix, path);
+
+	free(path);
+	path = NULL;
 }
 
 void swapRow(CLNetDataType * matrix, CLUInt rows, CLUInt columns, CLUInt fromRow, CLUInt toRow)
@@ -194,7 +201,7 @@ void printStat(CLDouble flops, CLDouble time, CLStringConst name)
 void CLNetInit(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * patterns,
 			   CLUInt nLayers, CLUInt * neuronsPerLayer, CLActivation * activationFunctionPerLayer,
 			   CLUInt nTargets, CLNetDataType * targets,
-			   CLStringConst name, CLBool shufflePattners, CLUInt nTestPatterns)
+			   CLStringConst name, CLBool shufflePattners, CLUInt nTestPatterns, CLBool bias)
 {
 	if (neuronsPerLayer[nLayers - 1]  != nTargets) {
 		fprintf(stderr, "nTargets must be the same of last value of neuronsPerLayer\n");
@@ -221,26 +228,29 @@ void CLNetInit(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * pa
 		exit(-5);
 	}
 
+	//bias
+	net->bias = bias;
+
 	//nPatterns
 	net->nPatterns = nPatterns;
 
 	//nInputs
-	net->nInputs = nInputs;
+	net->nInputs = nInputs + (bias == CLTrue ? 1 : 0);
 
 	//patterns
 	net->p = calloc(net->nPatterns * net->nInputs, sizeof(*patterns));
 	memcpy(net->p, patterns, sizeof(CLNetDataType) * net->nPatterns * net->nInputs);
 
-//	net->p = calloc(net->nPatterns * net->nInputs, sizeof(*patterns));
-//	if (net->bias > 0) {
-//		for (CLUInt i = 0; i < net->nPatterns; ++i) {
-//			for (CLUInt j = 0; j < net->nInputs; j++) {
-//				net->p[i * net->nInputs + j] = (j < net->nInputs - net->bias) ? patterns[i * (net->nInputs - net->bias) + j] : 1;
-//			}
-//		}
-//	} else {
-//		memcpy(net->p, patterns, sizeof(CLNetDataType) * net->nPatterns * net->nInputs);
-//	}
+	net->p = calloc(net->nPatterns * net->nInputs, sizeof(*patterns));
+	if (net->bias == CLTrue) {
+		for (CLUInt i = 0; i < net->nPatterns; ++i) {
+			for (CLUInt j = 0; j < net->nInputs; j++) {
+				net->p[i * net->nInputs + j] = (j < net->nInputs - 1) ? patterns[i * (net->nInputs - 1) + j] : 1;
+			}
+		}
+	} else {
+		memcpy(net->p, patterns, sizeof(CLNetDataType) * net->nPatterns * net->nInputs);
+	}
 
 	//nLayers (hidden + output)
 	net->nLayers = nLayers;
@@ -763,6 +773,8 @@ void CLNetCalculateD(CLNet * net, CLDeviceContext * devContext)
 	//
 	CLWaitForEvent(&eventD, "eventD");
 
+	printMatrix(devContext, net->d);
+
 #pragma mark BENCHMARK_CALCULATE_D
 	if (net->benchmark == CLTrue) {
 		CLDouble time = timeBetweenEventsNS(eventD, eventD);
@@ -919,9 +931,9 @@ void CLNetUpdateWeightsWithDelta(CLNet * net, CLDeviceContext * devContext)
 void CLNetTrainLMA(CLNet * net, CLDeviceContext * devContext)
 {
 
-//	printMatrix(devContext, net->trainingPatterns);
-//	printMatrix(devContext, net->trainingTargets);
-//	printMatrix(devContext, net->weights);
+	printMatrix(devContext, net->trainingPatterns);
+	printMatrix(devContext, net->trainingTargets);
+	printMatrix(devContext, net->weights);
 
 	net->benchmark = CLFalse;
 
@@ -957,6 +969,7 @@ void CLNetTrainLMA(CLNet * net, CLDeviceContext * devContext)
 			CLNetCholeskyDecomposition(net, devContext);		//Calcolo della decomposizione di Cholesky
 			ill = net->ill;
 
+			printMatrix(devContext, net->hessian);
 			printMatrix(devContext, net->cholesky);
 
 			if (ill) {
@@ -1006,7 +1019,7 @@ void CLNetPrintForward(CLNet * net, CLDeviceContext * devContext)
 	CLMatrixUpdateValuesFromMem(net->outputs, devContext->queue);
 
 	if (net->nInputs < 3){
-		for (CLUInt i = 0; i < net->nInputs; ++i) {
+		for (CLUInt i = 0; i < net->nInputs - (net->bias == CLTrue ? 1 : 0); ++i) {
 			printf("  Inputs[%2d]  |", i);
 		}
 	}
@@ -1027,7 +1040,7 @@ void CLNetPrintForward(CLNet * net, CLDeviceContext * devContext)
 	for (CLUInt p = 0; p < net->nTrainingPatterns; ++p) {
 
 		if (net->nInputs < 3) {
-			for (CLUInt i = 0; i < net->nInputs; ++i) {
+			for (CLUInt i = 0; i < net->nInputs - (net->bias == CLTrue ? 1 : 0); ++i) {
 				printf(PRINT_VALUE " |", net->trainingPatterns->values[p * net->nInputs + i]);
 			}
 		}

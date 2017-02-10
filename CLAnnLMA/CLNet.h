@@ -55,6 +55,7 @@ typedef enum CLActivation_ {
 typedef struct {
 
 	CLString name;
+	CLBool bias;
 	CLUInt nPatterns;
 	CLUInt nInputs;
 	CLUInt nLayers;
@@ -111,7 +112,7 @@ typedef struct {
 void CLNetInit(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * patterns,
 			   CLUInt nLayers, CLUInt * neuronsPerLayer, CLActivation * activationFunctionPerLayer,
 			   CLUInt nTargets, CLNetDataType * targets,
-			   CLStringConst name, CLBool shufflePattners, CLUInt nTestPatterns);
+			   CLStringConst name, CLBool shufflePattners, CLUInt nTestPatterns, CLBool bias);
 
 //void CLNetInitWithFile(CLNet * net, CLStringConst fileName);
 
