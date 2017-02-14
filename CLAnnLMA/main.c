@@ -53,26 +53,26 @@ void setupNetForXOR(CLNet * net)
 	CLUInt nTargets = 1;
 
 	CLUInt neuronsPerLayer[] = {5, 1};
-	CLActivation activationFunctionPerLayer[] = {CLActivationSigmoid, CLActivationLinear};
+	CLFunction functionPerLayer[] = {CLFunctionSigmoid, CLFunctionLinear};
 
 	CLNetDataType _inputs[] = {0, 0, 0, 1, 1, 0, 1, 1};
 
 	CLNetDataType _targets[] = {0,	1,	1,	0};
 
 	CLNetInit(net, nPatterns, nInputs, _inputs,
-			  nLayers, neuronsPerLayer, activationFunctionPerLayer,
+			  nLayers, neuronsPerLayer, functionPerLayer,
 			  nTargets, _targets,
 			  name, CLFalse, 0, CLFalse);
 
 	fillRandom(net->w, net->nWeights, 2, -1);
 
-	//2x2x1 CLActivationTansig
+	//2x2x1 CLFunctionTansig
 //	CLFloat _weights[] =
 //	{
 //		0.56087324868804345, 0.28466180930578844, 0.48483193599725993, 0.06400278452469621, 0.21066945268565362, 0.71573373999852663
 //	};
 
-	//2x10x1 CLActivationTansig
+	//2x10x1 CLFunctionTansig
 //	CLNetDataType _weights[] =
 //	{
 //		-0.358296722, -1.11181891, -0.875998139, -0.833521724, -0.770012856, -0.597140372, -1.11013341, -0.271296352, -0.373541415, -0.202476129,
@@ -94,7 +94,7 @@ void setupNetForIris(CLNet * net)
 	CLUInt nTargets = 3;
 
 	CLUInt neuronsPerLayer[] = {7, 5, 3};
-	CLActivation activationPerLayer[] = {CLActivationRadbas, CLActivationRadbas, CLActivationLinear};
+	CLFunction functionPerLayer[] = {CLFunctionRadbas, CLFunctionRadbas, CLFunctionLinear};
 
 	CLMatrix * patterns = calloc(1, sizeof(CLMatrix));
 	CLMatrixInitWithCSV(patterns, "irisInputs.csv");
@@ -104,7 +104,7 @@ void setupNetForIris(CLNet * net)
 	CLMatrixInitWithCSV(targets, "irisTargets.csv");
 
 	CLNetInit(net, nPatterns, nInputs, patterns->values,
-			  nLayers, neuronsPerLayer, activationPerLayer,
+			  nLayers, neuronsPerLayer, functionPerLayer,
 			  nTargets, targets->values,
 			  name, CLTrue, 0, CLTrue);
 	fillRandom(net->w, net->nWeights, 2, -1);
@@ -125,7 +125,7 @@ void setupForFunction(CLNet * net)
 	CLUInt nTargets = 1;
 
 	CLUInt neuronsPerLayer[] = {8, 1};
-	CLActivation activationPerLayer[] = {CLActivationTansig, CLActivationLinear};
+	CLFunction functionPerLayer[] = {CLFunctionTansig, CLFunctionLinear};
 
 	CLNetDataType * _patterns = calloc(nPatterns, sizeof(CLNetDataType));
 	CLNetDataType * _targets = calloc(nPatterns, sizeof(CLNetDataType));
@@ -140,7 +140,7 @@ void setupForFunction(CLNet * net)
 //	normalize(_targets, nPatterns);
 
 	CLNetInit(net, nPatterns, nInputs, _patterns,
-			  nLayers, neuronsPerLayer, activationPerLayer,
+			  nLayers, neuronsPerLayer, functionPerLayer,
 			  nTargets, _targets,
 			  name, CLTrue, 0, CLFalse);
 

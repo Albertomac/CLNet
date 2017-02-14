@@ -91,22 +91,16 @@ do { if (DEBUG_LOG) fprintf(stderr, fmt, __VA_ARGS__); } while (0)
 //Kernels
 #define kMemSet					"arrayMemSet"
 
-#define nActivationFunctions 4
-#define kActivationLinear		"activationLinear"
-#define kActivationSigmoid		"activationSigmoid"
-#define kActivationTansig		"activationTansig"
-#define kActivationRadbas		"activationRadbas"
-
-#define kDerivativesLinear		"derivativeLinear"
-#define kDerivativeSigmoid		"derivativeSigmoid"
-#define kDerivativeTansig		"derivativeTansig"
-#define kDerivativeRadbas		"derivativeRadbas"
+#define nFunctions 4
+#define kLinear					"linear"
+#define kSigmoid				"sigmoid"
+#define kTansig					"tansig"
+#define kRadbas					"radbas"
 
 #define kChiSquared				"chiSquared"
 #define kChiSquaredReduce		"chiSquaredReduce"
 #define kJacobianDiagonal		"jacobianDiagonal"
 #define kJacobianMultiply		"jacobianMultiply"
-#define kJacobian				"jacobian"
 #define kDelta					"delta"
 #define kUpdateDiagonal			"updateDiagonal"
 #define kCholeskyDecomposition	"choleskyDecomposition"

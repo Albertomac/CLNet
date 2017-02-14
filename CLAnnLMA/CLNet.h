@@ -24,8 +24,7 @@ typedef struct {
 	CLProgram program;
 
 	CLKernel kernelMemSet;
-	CLKernel * kernelsActivation;
-	CLKernel * kernelsDerivatives;
+	CLKernel * kernelsFunction;
 	CLKernel kernelChiSquared;
 	CLKernel kernelChiSquaredReduce;
 
@@ -45,12 +44,12 @@ void CLDeviceContextCleanUp(CLDeviceContext * devContext);
 
 #pragma mark CLNet
 
-typedef enum CLActivation_ {
-	CLActivationLinear,
-	CLActivationSigmoid,
-	CLActivationTansig,
-	CLActivationRadbas,
-} CLActivation;
+typedef enum CLFunction_ {
+	CLFunctionLinear = 0,
+	CLFunctionSigmoid,
+	CLFunctionTansig,
+	CLFunctionRadbas
+} CLFunction;
 
 typedef struct {
 
@@ -60,7 +59,7 @@ typedef struct {
 	CLUInt nInputs;
 	CLUInt nLayers;
 	CLUInt * neuronsPerLayer;
-	CLActivation * activationFunctionPerLayer;
+	CLFunction * activationFunctionPerLayer;
 	CLUInt nTargets;
 
 	CLUInt nTestPatterns;
@@ -110,7 +109,7 @@ typedef struct {
 } CLNet;
 
 void CLNetInit(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * patterns,
-			   CLUInt nLayers, CLUInt * neuronsPerLayer, CLActivation * activationFunctionPerLayer,
+			   CLUInt nLayers, CLUInt * neuronsPerLayer, CLFunction * activationFunctionPerLayer,
 			   CLUInt nTargets, CLNetDataType * targets,
 			   CLStringConst name, CLBool shufflePattners, CLUInt nTestPatterns, CLBool bias);
 
