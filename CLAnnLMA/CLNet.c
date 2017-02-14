@@ -983,22 +983,7 @@ void CLNetTrainLMA(CLNet * net, CLDeviceContext * devContext)
 		CLNetReloadWeights(net, devContext);
 		CLNetForward(net, devContext);								//Forward all'inizio dell'iterazione per ricalcolare le matrici Jacobian e Hessian
 		CLNetJacobian(net, devContext);								//Calcolo matrice Jacobian
-
-
-//		printMatrix(devContext, net->trainingPatterns);
-//		printMatrix(devContext, net->weights);
-//		printMatrix(devContext, net->valuesPerLayer[0]);
-//		printMatrix(devContext, net->activationPerLayer[0]);
-//		printMatrix(devContext, net->derivativesPerLayer[0]);
-//		printMatrix(devContext, net->valuesPerLayer[1]);
-//		printMatrix(devContext, net->activationPerLayer[1]);
-//		printMatrix(devContext, net->derivativesPerLayer[1]);
-//		printMatrix(devContext, net->jacobian);
-
-
-		CLNetHessian(net, devContext);
-		printMatrix(devContext, net->hessian);
-		//Calcolo matrice Hessian
+		CLNetHessian(net, devContext);								//Calcolo matrice Hessian
 		CLNetCalculateD(net, devContext);							//Calcolo array D
 
 		mult = 1 + lambda;											//Aggiornamento moltiplicatore
@@ -1006,12 +991,9 @@ void CLNetTrainLMA(CLNet * net, CLDeviceContext * devContext)
 		//Non si può sostituire con il do/while per via della seconda condizione
 		while (ill && (i < net->maxIterations)) {
 
-			CLNetUpdateHessianDiagonal(net, devContext, mult);	//Aggiorno la diagonale dell'hessian
-			//printMatrix(devContext, net->hessian);
-			CLNetCholeskyDecomposition(net, devContext);		//Calcolo della decomposizione di Cholesky
+			CLNetUpdateHessianDiagonal(net, devContext, mult);		//Aggiorno la diagonale dell'hessian
+			CLNetCholeskyDecomposition(net, devContext);			//Calcolo della decomposizione di Cholesky
 			ill = net->ill;
-
-			//printMatrix(devContext, net->cholesky);
 
 			if (!ill) {
 				CLNetCholeskySolve(net, devContext);				//Risoluzione di Cholesky per il calcolo dei delta dei pesi

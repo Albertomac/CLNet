@@ -24,9 +24,9 @@ void fillRandom(CLNetDataType * values, CLUInt nValues, CLNetDataType mult, CLNe
 {
 	for(CLUInt i = 0; i < nValues; ++i) {
 		values[i] = CLRandomValue() * mult + shift;
-		printf("%g, ", values[i]);
+//		printf("%g, ", values[i]);
 	}
-	printf("\n");
+//	printf("\n");
 }
 
 void normalize(CLNetDataType * values, CLUInt nValues)
@@ -113,8 +113,7 @@ void setupNetForIris(CLNet * net)
 CLNetDataType function(CLNetDataType x)
 {
 //	return (sin(x) + 4 * cos(x)) / log(1 + sqrt(x));
-//	return 2 * cos(10 * x) * sin(10 * x);
-	return sin(x);
+	return 2 * cos(10 * x) * sin(10 * x);
 }
 
 void setupForFunction(CLNet * net)
@@ -131,7 +130,7 @@ void setupForFunction(CLNet * net)
 	CLNetDataType * _patterns = calloc(nPatterns, sizeof(CLNetDataType));
 	CLNetDataType * _targets = calloc(nPatterns, sizeof(CLNetDataType));
 
-	fillRandom(_patterns, nPatterns, 3, 2);
+	fillRandom(_patterns, nPatterns, 2, -1);
 
 	for (CLUInt i = 0; i < nPatterns; ++i) {
 		_targets[i] = function(_patterns[i]);
@@ -143,9 +142,9 @@ void setupForFunction(CLNet * net)
 	CLNetInit(net, nPatterns, nInputs, _patterns,
 			  nLayers, neuronsPerLayer, activationPerLayer,
 			  nTargets, _targets,
-			  name, CLTrue, 0, CLTrue);
+			  name, CLTrue, 0, CLFalse);
 
-	fillRandom(net->w, net->nWeights, 1, 0);
+	fillRandom(net->w, net->nWeights, 2, -1);
 }
 
 int main(int argc, const char * argv[]) {
@@ -160,7 +159,7 @@ int main(int argc, const char * argv[]) {
 
 	CLNet * net = calloc(1, sizeof(CLNet));
 
-	switch (0) {
+	switch (1) {
 		case 0:
 			setupNetForXOR(net);
 			break;
