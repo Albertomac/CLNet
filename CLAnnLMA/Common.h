@@ -17,8 +17,8 @@
 #endif
 
 //Bolean
-#define CLTrue 1
-#define CLFalse 0
+#define CLTrue CL_TRUE
+#define CLFalse CL_FALSE
 
 //Benchmark
 #define BENCHMARK CLFalse
@@ -71,6 +71,7 @@ do { if (DEBUG_LOG) fprintf(stderr, fmt, __VA_ARGS__); } while (0)
 	#define CLFTollerance 1.0e-10
 
 	#define GEMM clblasDgemm
+	#define GEMV clblasDgemv
 	#define TRSV clblasDtrsv
 	#define AXPY clblasDaxpy
 
@@ -81,6 +82,7 @@ do { if (DEBUG_LOG) fprintf(stderr, fmt, __VA_ARGS__); } while (0)
 	#define CLFTollerance 1.0e-5
 
 	#define GEMM clblasSgemm
+	#define GEMV clblasSgemv
 	#define TRSV clblasStrsv
 	#define AXPY clblasSaxpy
 #endif

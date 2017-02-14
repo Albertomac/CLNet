@@ -39,8 +39,6 @@
 		F3115DDF1E488E6A00653426 /* libclBLAS.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libclBLAS.dylib; sourceTree = "<group>"; };
 		F32338141E12C6F3007E915D /* csvparser.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = csvparser.c; sourceTree = "<group>"; };
 		F32338151E12C6F3007E915D /* csvparser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = csvparser.h; sourceTree = "<group>"; };
-		F33124EB1DCF35880009950C /* CLAnn.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CLAnn.c; sourceTree = "<group>"; };
-		F33124EC1DCF35880009950C /* CLAnn.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CLAnn.h; sourceTree = "<group>"; };
 		F33124F01DCF71600009950C /* Kernels.ocl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Kernels.ocl; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.opencl; };
 		F3413CEC1DD1F1D7006BC6BB /* CLRandom.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CLRandom.c; sourceTree = "<group>"; };
 		F3413CED1DD1F1D7006BC6BB /* CLRandom.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CLRandom.h; sourceTree = "<group>"; };
@@ -97,8 +95,6 @@
 				F3C018F31DCE427900062459 /* CLManager.c */,
 				F3D44FCE1E3A366E00FD6DC9 /* CLNet.h */,
 				F3D44FCD1E3A366E00FD6DC9 /* CLNet.c */,
-				F33124EC1DCF35880009950C /* CLAnn.h */,
-				F33124EB1DCF35880009950C /* CLAnn.c */,
 				F3C018F81DCE45F200062459 /* CLMatrix.h */,
 				F3C018F71DCE45F200062459 /* CLMatrix.c */,
 				F33124F01DCF71600009950C /* Kernels.ocl */,

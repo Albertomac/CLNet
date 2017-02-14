@@ -211,7 +211,7 @@ __kernel void updateDiagonal(__global CLNetDataType * restrict matrix, uint dim,
 }
 
 
-#define TOL 1e-30f
+#define TOL 1e-30
 #define a(r, c) a[(r * npar + c)]
 #define l(r, c) l[(r * npar + c)]
 
