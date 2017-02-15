@@ -187,7 +187,6 @@ void printStat(CLDouble flops, CLDouble time, CLStringConst name)
 	printf("%s:\t\t\t%g GB/ms\t%g ms\n", name, sizeof(CLNetDataType) * flops / time, time * 1e-6);
 }
 
-
 void CLNetInit(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * patterns,
 			   CLUInt nLayers, CLUInt * neuronsPerLayer, CLFunction * activationFunctionPerLayer,
 			   CLUInt nTargets, CLNetDataType * targets,
@@ -822,8 +821,20 @@ void CLNetUpdateWeightsWithDelta(CLNet * net, CLDeviceContext * devContext)
 	CLReleaseEvent(eventUpdateWeights, "eventUpdateWeights");
 }
 
+void CLNetInitializeWeights(CLNet * net, CLDeviceContext * devContext)
+{
+	CLMatrixFillRandom(net->weights);
+	CLEvent eventInitializeWeights;
+	CLInt status = clEnqueueWriteBuffer(devContext->queue, net->weights->mem, CLTrue, 0, net->weights->size, net->weights->values, 0, NULL, &eventInitializeWeights);
+	CLErrorCheck(status, "clEnqueueWriteBuffer", "initializeWeights", CHECK_EXIT);
+
+	CLNetUpdateWeightsTemp(net, devContext);
+}
+
 void CLNetTrainLMA(CLNet * net, CLDeviceContext * devContext)
 {
+	CLNetInitializeWeights(net, devContext);
+
 	net->benchmark = CLFalse;
 
 	CLNetDataType mult;
@@ -868,12 +879,17 @@ void CLNetTrainLMA(CLNet * net, CLDeviceContext * devContext)
 
 			printf("it = %4d,   lambda = %10g,   err = %10g,   derr = %10g    choleskyIll = %d\n", i, lambda, error, deltaError, net->ill);
 
-			if (isnan(newError) || lambda > 1e11 || lambda < 1e-20) return;
-
 			if (ill) {												//Se ill è ancora 1, vengono aggiornati i moltiplicatori
 				mult = (1 + lambda * net->upFactor)/(1 + lambda);
 				lambda *= net->upFactor;
 				i++;
+			}
+
+			//TODO: SISTEMARE QUESTA COSA IMMEDIATAMENTE
+			if (isnan(newError) || lambda > 1e11 || lambda < 1e-20) {
+				CLNetInitializeWeights(net, devContext);
+				lambda = net->initialLambda;
+				break;
 			}
 		}
 		CLNetUpdateWeightsTemp(net, devContext);					//I nuovi pesi vengono salvati

@@ -94,7 +94,7 @@ void setupNetForIris(CLNet * net)
 	CLUInt nTargets = 3;
 
 	CLUInt neuronsPerLayer[] = {7, 5, 3};
-	CLFunction functionPerLayer[] = {CLFunctionRadbas, CLFunctionTansig, CLFunctionLinear};
+	CLFunction functionPerLayer[] = {CLFunctionRadbas, CLFunctionRadbas, CLFunctionLinear};
 
 	CLMatrix * patterns = calloc(1, sizeof(CLMatrix));
 	CLMatrixInitWithCSV(patterns, "irisInputs.csv");
@@ -107,7 +107,6 @@ void setupNetForIris(CLNet * net)
 			  nLayers, neuronsPerLayer, functionPerLayer,
 			  nTargets, targets->values,
 			  name, CLTrue, 0, CLTrue);
-	fillRandom(net->w, net->nWeights, 1, -0.5);
 }
 
 CLNetDataType function(CLNetDataType x)

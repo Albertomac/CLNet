@@ -63,7 +63,7 @@ do { if (DEBUG_LOG) fprintf(stderr, fmt, __VA_ARGS__); } while (0)
 #define CLSSize ssize_t
 
 //Precision of values
-#define CLNetPrecisionDouble CLFalse
+#define CLNetPrecisionDouble CLTrue
 
 #if CLNetPrecisionDouble
 	#define CLNetDataType CLDouble
