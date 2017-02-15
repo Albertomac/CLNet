@@ -19,7 +19,7 @@
 #define BUFFER_STRING 64
 
 #define BLOCK_SIZE_MEMSET 64
-#define BLOCK_SIZE_ACTIVATION 32
+#define BLOCK_SIZE_FUNCTION 32
 #define BLOCK_SIZE_CHI_SQUARED 64
 
 #define BLOCK_SIZE_JACOBIAN_DIAGONAL 32
@@ -28,7 +28,7 @@
 
 #define BLOCK_SIZE_DELTA 64
 #define BLOCK_SIZE_HESSIAN_UPDATE 32
-#define BLOCK_SIZE_CHOLESKY_DECOMPOSITION 32
+#define BLOCK_SIZE_CHOLESKY_DECOMPOSITION 1024
 
 
 #pragma mark CLDeviceContext
@@ -406,8 +406,8 @@ void CLNetComputeLayer(CLNet * net, CLDeviceContext * devContext,
 					   CLMatrix * derivativeLayer, CLMatrix * activatedLayer, CLMatrix * valuesLayer, CLFunction function,
 					   CLEvent * event)
 {
-	CLSize lws[] = {BLOCK_SIZE_ACTIVATION,
-					BLOCK_SIZE_ACTIVATION};
+	CLSize lws[] = {BLOCK_SIZE_FUNCTION,
+					BLOCK_SIZE_FUNCTION};
 	CLSize gws[] = {CLGetOptimalGlobalWorkItemsSize(valuesLayer->columns, lws[0]),
 					CLGetOptimalGlobalWorkItemsSize(valuesLayer->rows, lws[1])};
 
@@ -701,8 +701,13 @@ void CLNetCalculateD(CLNet * net, CLDeviceContext * devContext)
 	CLErrorCheck(status, "GEMV", "-J^T * (O - T)", CHECK_EXIT);
 //	clWaitForEvents(1, &eventGEMV);
 
+//	clWaitForEvents(1, &eventAXPY);
+//	clWaitForEvents(1, &eventGEMV);
+//	printf("D_TIME: %.4g ", timeBetweenEventsMS(eventAXPY, eventGEMV));
+
 	CLReleaseEvent(eventAXPY, "eventAXPY");
 	CLReleaseEvent(eventGEMV, "eventGEMV");
+
 
 //	CLEvent eventD;
 //	CLUInt nArg = 0;
@@ -718,8 +723,9 @@ void CLNetCalculateD(CLNet * net, CLDeviceContext * devContext)
 //	CLSize gws[] = {CLGetOptimalGlobalWorkItemsSize(net->d->columns, BLOCK_SIZE_DELTA)};
 //
 //	CLEnqueueNDRangeKernel(devContext->queue, kernelDelta, 1, NULL, gws, lws, 0, NULL, &eventD, kDelta);
-////	CLWaitForEvent(&eventD, "eventD");
+//	CLWaitForEvent(&eventD, "eventD");
 //
+//	printf("D_Time: %.4g", timeBetweenEventsMS(eventD, eventD));
 //
 //#pragma mark BENCHMARK_CALCULATE_D
 //	if (net->benchmark == CLTrue) {
@@ -795,6 +801,12 @@ void CLNetCholeskyDecomposition(CLNet * net, CLDeviceContext * devContext)
 	free(illResult);
 	illResult = NULL;
 
+
+//	clWaitForEvents(net->cholesky->rows, eventCholeskyDecomposition);
+//
+//	printf("CHOLESKY: %g ", timeBetweenEventsMS(eventCholeskyDecomposition[0], eventCholeskyDecomposition[net->cholesky->rows - 1]));
+
+
 #pragma mark BENCHMARK_CHOLESKY_DECOMPOSITION
 	if (net->benchmark == CLTrue) {
 		CLDouble time = timeBetweenEventsNS(eventCholeskyDecomposition[0], eventCholeskyDecomposition[net->cholesky->rows - 1]);
@@ -802,11 +814,6 @@ void CLNetCholeskyDecomposition(CLNet * net, CLDeviceContext * devContext)
 
 		printStat(flops, time, "choleskyDecomposition");
 	}
-
-	//
-//	for (CLUInt i = 0; i < net->cholesky->rows; ++i) {
-//		CLWaitForEvent(&eventCholeskyDecomposition[i], "eventCholeskyDecomposition");
-//	}
 
 	for (CLUInt i = 0; i < net->cholesky->rows; ++i) {
 		CLReleaseEvent(eventCholeskyDecomposition[i], "eventCholeskyDecomposition");

@@ -179,7 +179,7 @@ __kernel void choleskyDecomposition(__global CLNetDataType * restrict l,
 {
 	uint y = get_global_id(0);
 
-	if (y >= npar) {
+	if (ill[0] == 1 || y >= npar) {
 		return;
 	}
 

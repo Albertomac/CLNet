@@ -107,7 +107,7 @@ void setupNetForIris(CLNet * net)
 			  nLayers, neuronsPerLayer, functionPerLayer,
 			  nTargets, targets->values,
 			  name, CLTrue, 0, CLTrue);
-	fillRandom(net->w, net->nWeights, 2, -1);
+	fillRandom(net->w, net->nWeights, 1, 0);
 }
 
 CLNetDataType function(CLNetDataType x)
