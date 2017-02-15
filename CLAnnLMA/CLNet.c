@@ -622,7 +622,7 @@ void CLNetJacobian(CLNet * net, CLDeviceContext * devContext)
 									   1, net->weightsPerLayer[l]->mem, net->weightsPerLayer[l]->offsetMem, lda,
 									   net->jacobianPerLayer[l - 1]->mem, i * ldb * net->neuronsPerLayer[l - 1], ldb,
 									   0, net->jacobianPerLayer[l]->mem, i * ldc * net->neuronsPerLayer[l], ldc,
-									   1, &devContext->queue, 0, NULL, &eventJacobianMultiply[i]);
+									   1, &devContext->queue, 0, NULL, &eventJacobianMultiply[l]);
 			CLErrorCheck(status, "GEMM", "GEMM weights' x jacobianPerLayer[0]", CHECK_EXIT);
 		}
 
