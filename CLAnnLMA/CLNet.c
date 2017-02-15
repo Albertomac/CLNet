@@ -358,7 +358,7 @@ void CLNetInit(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * pa
 	net->ill = CLFalse;
 	net->verbose = CLTrue;
 	net->maxIterations = 10000;
-	net->initialLambda = 0.0001;
+	net->initialLambda = 0.001;
 	net->upFactor = 10.0;
 	net->downFactor = 10.0;
 	net->targetDeltaError = 1e-12f;
@@ -391,8 +391,6 @@ void CLNetMatrixMultiply(CLNet * net, CLDeviceContext * devContext,
 
 	CLErrorCheck(status, "GEMM", "", CHECK_EXIT);
 
-//	CLWaitForEvent(event, "GEMM event");
-
 #pragma mark BENCHMARK_MATRIX_MULTIPLY
 	if (net->benchmark == CLTrue) {
 		CLDouble time = timeBetweenEventsNS(*event, *event);
@@ -420,7 +418,10 @@ void CLNetComputeLayer(CLNet * net, CLDeviceContext * devContext,
 	CLSetKernelArg(kernelActivation, nArg++, sizeof(valuesLayer->columns), &valuesLayer->columns, "columns");
 
 	CLEnqueueNDRangeKernel(devContext->queue, kernelActivation, 2, NULL, gws, lws, 0, NULL, event, valuesLayer->name);
-//	CLWaitForEvent(event, "eventComputeLayer");
+
+#pragma mark BENCHMARK_COMPUTE_LAYER
+	if (net->benchmark == CLTrue) {
+	}
 }
 
 void CLNetForward(CLNet * net, CLDeviceContext * devContext)
@@ -432,16 +433,13 @@ void CLNetForward(CLNet * net, CLDeviceContext * devContext)
 						net->trainingPatterns,
 						net->weightsPerLayer[0],
 						net->valuesPerLayer[0], &eventsMultiply[0]);
-
 	CLNetComputeLayer(net, devContext, net->derivativesPerLayer[0], net->activationPerLayer[0], net->valuesPerLayer[0], net->activationFunctionPerLayer[0], &eventsActivation[0]);
 
-	//Hidden Layers
 	for (CLUInt i = 1; i < net->nLayers; ++i) {
 		CLNetMatrixMultiply(net, devContext,
 							net->activationPerLayer[i - 1],
 							net->weightsPerLayer[i],
 							net->valuesPerLayer[i], &eventsMultiply[i]);
-
 		CLNetComputeLayer(net, devContext, net->derivativesPerLayer[i], net->activationPerLayer[i], net->valuesPerLayer[i], net->activationFunctionPerLayer[i], &eventsActivation[i]);
 	}
 
@@ -498,6 +496,7 @@ void CLNetForward(CLNet * net, CLDeviceContext * devContext)
 
 void CLNetChiSquared(CLNet * net, CLDeviceContext * devContext)
 {
+	//ChiSquared
 	CLEvent eventChiSquared;
 	CLSize lws[] = {BLOCK_SIZE_CHI_SQUARED};
 	CLSize gws[] = {CLGetOptimalGlobalWorkItemsSize(net->outputs->elements, lws[0])};
@@ -513,6 +512,7 @@ void CLNetChiSquared(CLNet * net, CLDeviceContext * devContext)
 
 	CLEnqueueNDRangeKernel(devContext->queue, kernelChiSquared, 1, NULL, gws, lws, 0, NULL, &eventChiSquared, kChiSquared);
 
+
 	//ChiSquaredReduce
 	CLEvent eventChiSquaredReduce;
 	gws[0] = nwg;
@@ -524,18 +524,11 @@ void CLNetChiSquared(CLNet * net, CLDeviceContext * devContext)
 
 	CLEnqueueNDRangeKernel(devContext->queue, kernelChiSquaredReduce, 1, NULL, gws, lws, 0, NULL, &eventChiSquaredReduce, kChiSquaredReduce);
 
-	CLEvent eventReadErrorValue;
-	CLNetDataType * errorValue = calloc(1, sizeof(CLNetDataType));
-	CLInt error = clEnqueueReadBuffer(devContext->queue, net->chiSquaredError->mem, CLTrue, 0, sizeof(CLNetDataType), errorValue, 0, NULL, &eventReadErrorValue);
-	CLErrorCheck(error, "clEnqueueReadBuffer", "read errorValue", CHECK_EXIT);
-//	CLWaitForEvent(&eventReadErrorValue, "eventReadErrorValue");
-	CLReleaseEvent(eventReadErrorValue, "eventReadErrorValue");
-	net->errorChiSquared = errorValue[0];
-	free(errorValue);
 
-	//
-//	CLWaitForEvent(&eventChiSquared, "eventChiSquared");
-//	CLWaitForEvent(&eventChiSquaredReduce, "eventChiSquaredReduce");
+	//ReadError
+	CLEvent eventReadErrorValue;
+	CLInt error = clEnqueueReadBuffer(devContext->queue, net->chiSquaredError->mem, CLTrue, 0, sizeof(CLNetDataType), &net->errorChiSquared, 0, NULL, &eventReadErrorValue);
+	CLErrorCheck(error, "clEnqueueReadBuffer", "read errorValue", CHECK_EXIT);
 
 #pragma mark BENCHMARK_CHI_SQUARED
 	if (net->benchmark == CLTrue) {
@@ -555,11 +548,13 @@ void CLNetChiSquared(CLNet * net, CLDeviceContext * devContext)
 	//Releases
 	CLReleaseEvent(eventChiSquared, "eventChiSquared");
 	CLReleaseEvent(eventChiSquaredReduce, "eventChiSquaredReduce");
+	CLReleaseEvent(eventReadErrorValue, "eventReadErrorValue");
 }
 
 void CLNetJacobianDiagonal(CLNet * net, CLDeviceContext * devContext, CLMatrix * jacobian, CLUInt offset, CLMatrix * values, CLUInt dimDiag, CLEvent * event)
 {
-	CLSize lws[] = {BLOCK_SIZE_JACOBIAN_DIAGONAL, BLOCK_SIZE_JACOBIAN_DIAGONAL};
+	CLSize lws[] = {BLOCK_SIZE_JACOBIAN_DIAGONAL,
+					BLOCK_SIZE_JACOBIAN_DIAGONAL};
 	CLSize gws[] = {CLGetOptimalGlobalWorkItemsSize(jacobian->columns, lws[0]),
 					CLGetOptimalGlobalWorkItemsSize(jacobian->rows, lws[1])};
 	
@@ -574,24 +569,19 @@ void CLNetJacobianDiagonal(CLNet * net, CLDeviceContext * devContext, CLMatrix *
 	CLSetKernelArg(kernelJacobianDiagonal, nArgs++, sizeof(values->columns), &values->columns, "columnsValues");
 	CLSetKernelArg(kernelJacobianDiagonal, nArgs++, sizeof(dimDiag), &dimDiag, "nValues");
 
-
 	CLEnqueueNDRangeKernel(devContext->queue, kernelJacobianDiagonal, 2, NULL, gws, lws, 0, NULL, event, "jacobianDiagonal");
-//	CLWaitForEvent(event, "eventJacobianDiagonal");
 
 #pragma BENCHMARK_JACOBIAN_DIAGONAL
 	if (net->benchmark == CLTrue) {
-		CLDouble time = timeBetweenEventsNS(*event, *event);
-		CLDouble flops = 1;
-
-		printStat(flops, time, "jacobian->diagonal");
 	}
 }
 
 void CLNetJacobianMultiply(CLNet * net, CLDeviceContext * devContext, CLMatrix * jacobian, CLMatrix * values, CLEvent * event)
 {
-	CLSize lws[] = {BLOCK_SIZE_JACOBIAN_MULTIPLY, BLOCK_SIZE_JACOBIAN_MULTIPLY};
+	CLSize lws[] = {BLOCK_SIZE_JACOBIAN_MULTIPLY,
+					BLOCK_SIZE_JACOBIAN_MULTIPLY};
 	CLSize gws[] = {CLGetOptimalGlobalWorkItemsSize(jacobian->columns, lws[0]),
-		CLGetOptimalGlobalWorkItemsSize(jacobian->rows, lws[1])};
+					CLGetOptimalGlobalWorkItemsSize(jacobian->rows, lws[1])};
 
 	CLUInt nArgs = 0;
 	CLKernel kernelJacobianMultiply = devContext->kernelJacobianMultiply;
@@ -601,33 +591,25 @@ void CLNetJacobianMultiply(CLNet * net, CLDeviceContext * devContext, CLMatrix *
 	CLSetKernelArg(kernelJacobianMultiply, nArgs++, sizeof(values->mem), &values->mem, "values");
 
 	CLEnqueueNDRangeKernel(devContext->queue, kernelJacobianMultiply, 2, NULL, gws, lws, 0, NULL, event, "jacobianMultiply");
-//	CLWaitForEvent(event, "eventJacobianMultiply");
 
 #pragma BENCHMARK_JACOBIAN_MULTIPLY
 	if (net->benchmark == CLTrue) {
-		CLDouble time = timeBetweenEventsNS(*event, *event);
-		CLDouble flops = 1;
-
-		printStat(flops, time, "jacobian->multiply");
 	}
 }
 
+//TODO: creare 2 o più code per poter eseguire i kernel contemporaneamente
 void CLNetJacobian(CLNet * net, CLDeviceContext * devContext)
 {
 	CLEvent * eventJacobianDiagonal = calloc(net->nLayers, sizeof(CLEvent));
+	CLEvent * eventJacobianMultiply = calloc(net->nLayers, sizeof(CLEvent));
 
 	CLNetJacobianDiagonal(net, devContext, net->jacobianPerLayer[0], 0,
 						  net->trainingPatterns, net->weightsPerLayer[0]->elements / net->nInputs,
 						  &eventJacobianDiagonal[0]);
-
-	CLEvent eventJacobianMultiply;
-	CLNetJacobianMultiply(net, devContext, net->jacobianPerLayer[0], net->derivativesPerLayer[0], &eventJacobianMultiply);
-
-//	CLWaitForEvent(&eventJacobianMultiply, "eventJacobianMultiply");
+	CLNetJacobianMultiply(net, devContext, net->jacobianPerLayer[0], net->derivativesPerLayer[0], &eventJacobianMultiply[0]);
 
 	for (CLUInt l = 1; l < net->nLayers; ++l) {
 
-		CLEvent * eventJacobianMatrixMult = calloc(net->nTrainingPatterns, sizeof(CLEvent));
 		CLSize m = net->weightsPerLayer[l]->columns;
 		CLSize n = net->jacobianPerLayer[l - 1]->columns;
 		CLSize k = net->weightsPerLayer[l]->rows;
@@ -641,22 +623,29 @@ void CLNetJacobian(CLNet * net, CLDeviceContext * devContext)
 									   net->jacobianPerLayer[l - 1]->mem, i * ldb * net->neuronsPerLayer[l - 1], ldb,
 									   0, net->jacobianPerLayer[l]->mem, i * ldc * net->neuronsPerLayer[l], ldc,
 									   1, &devContext->queue, 0, NULL, &eventJacobianMatrixMult[i]);
-
 			CLErrorCheck(status, "GEMM", "GEMM weights' x jacobianPerLayer[0]", CHECK_EXIT);
 		}
 
 		CLNetJacobianDiagonal(net, devContext, net->jacobianPerLayer[l], net->jacobianPerLayer[l - 1]->columns,
-							  net->activationPerLayer[l - 1], net->weightsPerLayer[l]->elements / net->neuronsPerLayer[l - 1], &eventJacobianDiagonal[l]);
-//		CLWaitForEvent(&eventJacobianMatrixMult[net->nTrainingPatterns - 1], "eventJacobianMatrixMult");
+							  net->activationPerLayer[l - 1], net->weightsPerLayer[l]->elements / net->neuronsPerLayer[l - 1],
+							  &eventJacobianDiagonal[l]);
+		CLNetJacobianMultiply(net, devContext, net->jacobianPerLayer[l], net->derivativesPerLayer[l], &eventJacobianMultiply[l]);
 
-		CLEvent eventJacobianMultiply;
-		CLNetJacobianMultiply(net, devContext, net->jacobianPerLayer[l], net->derivativesPerLayer[l], &eventJacobianMultiply);
-
-//		CLWaitForEvent(&eventJacobianMultiply, "eventJacobianMultiply");
-		CLReleaseEvent(eventJacobianMultiply, "eventJacobianDiagonal");
 	}
 
 #pragma mark BENCHMARK_JACOBIAN
+	if (net->benchmark == CLTrue) {
+	}
+
+	for (CLUInt i = 0; i < net->nLayers; ++i) {
+		CLReleaseEvent(eventJacobianDiagonal[i], "eventJacobianDiagonal");
+		CLReleaseEvent(eventJacobianMultiply[i], "eventJacobianDiagonal");
+	}
+
+	free(eventJacobianDiagonal);
+	eventJacobianDiagonal = NULL;
+	free(eventJacobianMultiply);
+	eventJacobianMultiply = NULL;
 }
 
 void CLNetHessian(CLNet * net, CLDeviceContext * devContext)
@@ -671,9 +660,7 @@ void CLNetHessian(CLNet * net, CLDeviceContext * devContext)
 							   net->jacobian->mem, 0, n,
 							   0, net->hessian->mem, 0, n,
 							   1, &devContext->queue, 0, NULL, &eventHessian);
-
 	CLErrorCheck(status, "GEMM", "hessian", CHECK_EXIT);
-//	CLWaitForEvent(&eventHessian, "eventHessian");
 
 #pragma mark BENCHMARK_HESSIAN
 	if (net->benchmark == CLTrue) {
@@ -688,54 +675,22 @@ void CLNetHessian(CLNet * net, CLDeviceContext * devContext)
 
 void CLNetCalculateD(CLNet * net, CLDeviceContext * devContext)
 {
-
 	CLEvent eventAXPY;
 	clblasStatus status = AXPY(net->trainingTargets->elements, -1, net->trainingTargets->mem, 0, 1, net->outputs->mem, 0, 1, 1, &devContext->queue, 0, NULL, &eventAXPY);
-	CLErrorCheck(status, "AXPY", "outputs - trainingTargetes", CHECK_EXIT);
-//	clWaitForEvents(1, &eventAXPY);
+	CLErrorCheck(status, "AXPY", "outputs = outputs - trainingTargetes", CHECK_EXIT);
 
 	CLEvent eventGEMV;
 	status = GEMV(clblasRowMajor, clblasTrans, net->jacobian->rows, net->jacobian->columns, -1, net->jacobian->mem, 0, net->jacobian->columns,
 				  net->outputs->mem, 0, 1, 0, net->d->mem, 0, 1,
 				  1, &devContext->queue, 0, NULL, &eventGEMV);
 	CLErrorCheck(status, "GEMV", "-J^T * (O - T)", CHECK_EXIT);
-//	clWaitForEvents(1, &eventGEMV);
-
-//	clWaitForEvents(1, &eventAXPY);
-//	clWaitForEvents(1, &eventGEMV);
-//	printf("D_TIME: %.4g ", timeBetweenEventsMS(eventAXPY, eventGEMV));
 
 	CLReleaseEvent(eventAXPY, "eventAXPY");
 	CLReleaseEvent(eventGEMV, "eventGEMV");
 
-
-//	CLEvent eventD;
-//	CLUInt nArg = 0;
-//	CLKernel kernelDelta = devContext->kernelDelta;
-//	CLSetKernelArg(kernelDelta, nArg++, sizeof(net->d->mem), &net->d->mem, net->d->name);
-//	CLSetKernelArg(kernelDelta, nArg++, sizeof(net->trainingTargets->mem), &net->trainingTargets->mem, net->trainingTargets->name);
-//	CLSetKernelArg(kernelDelta, nArg++, sizeof(net->outputs->mem), &net->outputs->mem, net->outputs->name);
-//	CLSetKernelArg(kernelDelta, nArg++, sizeof(net->jacobian->mem), &net->jacobian->mem, net->jacobian->name);
-//	CLSetKernelArg(kernelDelta, nArg++, sizeof(CLUInt), &net->trainingTargets->elements, "ny");
-//	CLSetKernelArg(kernelDelta, nArg++, sizeof(CLUInt), &net->nWeights, "npar");
-//
-//	CLSize lws[] = {BLOCK_SIZE_DELTA};
-//	CLSize gws[] = {CLGetOptimalGlobalWorkItemsSize(net->d->columns, BLOCK_SIZE_DELTA)};
-//
-//	CLEnqueueNDRangeKernel(devContext->queue, kernelDelta, 1, NULL, gws, lws, 0, NULL, &eventD, kDelta);
-//	CLWaitForEvent(&eventD, "eventD");
-//
-//	printf("D_Time: %.4g", timeBetweenEventsMS(eventD, eventD));
-//
-//#pragma mark BENCHMARK_CALCULATE_D
-//	if (net->benchmark == CLTrue) {
-//		CLDouble time = timeBetweenEventsNS(eventD, eventD);
-//		CLDouble flops = 3 * (net->nWeights * net->nPatterns);
-//
-//		printStat(flops, time, "calculateD");
-//	}
-//
-//	CLReleaseEvent(eventD, "eventDelta");
+#pragma mark BENCHMARK_CALCULATE_D
+	if (net->benchmark == CLTrue) {
+	}
 }
 
 void CLNetUpdateHessianDiagonal(CLNet * net, CLDeviceContext * devContext, CLNetDataType mult)
@@ -752,10 +707,10 @@ void CLNetUpdateHessianDiagonal(CLNet * net, CLDeviceContext * devContext, CLNet
 	CLSetKernelArg(kernelUpdateDiagonal, nArgs++, sizeof(mult), &mult, "mult");
 
 	CLEnqueueNDRangeKernel(devContext->queue, kernelUpdateDiagonal, 1, NULL, gws, lws, 0, NULL, &eventUpdateDiagonal, "updateHessianDiagonal");
-//	CLWaitForEvent(&eventUpdateDiagonal, "eventUpdateDiagonal");
 
 #pragma BENCHMARK_UPDATE_HESSIAN_DIAGONAL
-	//TODO: inserire il benchmark
+	if (net->benchmark == CLTrue) {
+	}
 
 	CLReleaseEvent(eventUpdateDiagonal, "eventUpdateDiagonal");
 }
@@ -764,11 +719,13 @@ void CLNetCholeskyDecomposition(CLNet * net, CLDeviceContext * devContext)
 {
 	CLNetMemSetMatrix(net, devContext, net->choleskySums, 0);
 
+	//Set ill to zero
 	net->ill = 0;
 	CLEvent eventWriteIll;
 	clEnqueueWriteBuffer(devContext->queue, net->illMem, CLTrue, 0, sizeof(CLUInt), &net->ill, 0, NULL, &eventWriteIll);
-//	clWaitForEvents(1, &eventWriteIll);
+	CLReleaseEvent(eventWriteIll, "eventWriteIll");
 
+	//Cholesky
 	CLSize lws[] = {BLOCK_SIZE_CHOLESKY_DECOMPOSITION};
 	CLSize gws[] = {CLGetOptimalGlobalWorkItemsSize(net->nWeights, lws[0])};
 
@@ -780,31 +737,17 @@ void CLNetCholeskyDecomposition(CLNet * net, CLDeviceContext * devContext)
 	CLSetKernelArg(kernelCholeskyDecomposition, nArg++, sizeof(CLUInt), &net->nWeights, "npar");
 	CLSetKernelArg(kernelCholeskyDecomposition, nArg++, sizeof(net->illMem), &net->illMem, "ill");
 
-
 	CLEvent * eventCholeskyDecomposition = calloc(net->cholesky->rows, sizeof(CLEvent));
 	for (CLUInt i = 0; i < net->cholesky->rows; ++i) {
 
 		CLSetKernelArg(kernelCholeskyDecomposition, nArg, sizeof(CLUInt), &i, "row");
-
 		CLEnqueueNDRangeKernel(devContext->queue, kernelCholeskyDecomposition, 1, NULL, gws, lws, 0, NULL, eventCholeskyDecomposition+i, kCholeskyDecomposition);
 	}
 
-//	clWaitForEvents(net->cholesky->rows, eventCholeskyDecomposition);
-
+	//Read Ill
 	CLEvent eventReadIll;
-	CLUInt * illResult = calloc(1, sizeof(CLUInt));
-	CLUInt error = clEnqueueReadBuffer(devContext->queue, net->illMem, CLTrue, 0, sizeof(CLUInt), illResult, 0, NULL, &eventReadIll);
+	CLUInt error = clEnqueueReadBuffer(devContext->queue, net->illMem, CLTrue, 0, sizeof(CLUInt), &net->ill, 0, NULL, &eventReadIll);
 	CLErrorCheck(error, "clEnqueueReadBuffer", "read errorValue", CHECK_EXIT);
-//	CLWaitForEvent(&eventReadIll, "eventReadErrorValue");
-	CLReleaseEvent(eventReadIll, "eventReadErrorValue");
-	net->ill = illResult[0];
-	free(illResult);
-	illResult = NULL;
-
-
-//	clWaitForEvents(net->cholesky->rows, eventCholeskyDecomposition);
-//
-//	printf("CHOLESKY: %g ", timeBetweenEventsMS(eventCholeskyDecomposition[0], eventCholeskyDecomposition[net->cholesky->rows - 1]));
 
 
 #pragma mark BENCHMARK_CHOLESKY_DECOMPOSITION
@@ -818,6 +761,8 @@ void CLNetCholeskyDecomposition(CLNet * net, CLDeviceContext * devContext)
 	for (CLUInt i = 0; i < net->cholesky->rows; ++i) {
 		CLReleaseEvent(eventCholeskyDecomposition[i], "eventCholeskyDecomposition");
 	}
+
+	CLReleaseEvent(eventReadIll, "eventReadErrorValue");
 
 	free(eventCholeskyDecomposition);
 	eventCholeskyDecomposition = NULL;
@@ -840,15 +785,10 @@ void CLNetCholeskySolve(CLNet * net, CLDeviceContext * devContext)
 	CLInt status = clEnqueueCopyBuffer(devContext->queue, net->d->mem, net->delta->mem, 0, 0, net->d->size, 0, NULL, &eventCopyDelta);
 	CLErrorCheck(status, "clEnqueueCopyBuffer", "copyDelta", CHECK_EXIT);
 
-//	CLWaitForEvent(&eventCopyDelta, "eventCopyDelta");
 
 	CLEvent eventsSolve[2];
 	CLNetSolveTriangular(net, devContext, net->cholesky, net->delta, clblasTrans, &eventsSolve[0]);
 	CLNetSolveTriangular(net, devContext, net->cholesky, net->delta, clblasNoTrans, &eventsSolve[1]);
-
-	//
-//	CLWaitForEvent(&eventsSolve[0], "eventSolve[0]");
-//	CLWaitForEvent(&eventsSolve[1], "eventSolve[1]");
 
 	CLReleaseEvent(eventCopyDelta, "eventCopyDelta");
 	CLReleaseEvent(eventsSolve[0], "eventSolve[0]");
@@ -861,8 +801,6 @@ void CLNetReloadWeights(CLNet * net, CLDeviceContext * devContext)
 	CLInt status = clEnqueueCopyBuffer(devContext->queue, net->weightsTemp->mem, net->weights->mem, 0, 0, net->weightsTemp->size, 0, NULL, &eventReloadWeights);
 	CLErrorCheck(status, "clEnqueueCopyBuffer", "weightsTemp -> weights", CHECK_EXIT);
 
-//	CLWaitForEvent(&eventReloadWeights, "eventReloadWeights");
-
 	CLReleaseEvent(eventReloadWeights, "eventReloadWeights");
 }
 
@@ -872,8 +810,6 @@ void CLNetUpdateWeightsTemp(CLNet * net, CLDeviceContext * devContext)
 	CLInt status = clEnqueueCopyBuffer(devContext->queue, net->weights->mem, net->weightsTemp->mem, 0, 0, net->weights->size, 0, NULL, &eventUpdateWeightsTemp);
 	CLErrorCheck(status, "clEnqueueCopyBuffer", "weights -> weightsTemp", CHECK_EXIT);
 
-//	CLWaitForEvent(&eventUpdateWeightsTemp, "eventReloadWeights");
-
 	CLReleaseEvent(eventUpdateWeightsTemp, "eventUpdateWeightsTemp");
 }
 
@@ -882,8 +818,6 @@ void CLNetUpdateWeightsWithDelta(CLNet * net, CLDeviceContext * devContext)
 	CLEvent eventUpdateWeights;
 	clblasStatus status = AXPY(net->weights->elements, 1, net->delta->mem, 0, 1, net->weights->mem, 0, 1, 1, &devContext->queue, 0, NULL, &eventUpdateWeights);
 	CLErrorCheck(status, "AXPY", "updateWeightsWithDelta", CHECK_EXIT);
-
-//	CLWaitForEvent(&eventUpdateWeights, "eventReloadWeights");
 
 	CLReleaseEvent(eventUpdateWeights, "eventUpdateWeights");
 }
@@ -934,7 +868,7 @@ void CLNetTrainLMA(CLNet * net, CLDeviceContext * devContext)
 
 			printf("it = %4d,   lambda = %10g,   err = %10g,   derr = %10g    choleskyIll = %d\n", i, lambda, error, deltaError, net->ill);
 
-			if (isnan(newError) || lambda > 1e8 || lambda < 1e-20) return;
+			if (isnan(newError) || lambda > 1e11 || lambda < 1e-20) return;
 
 			if (ill) {												//Se ill è ancora 1, vengono aggiornati i moltiplicatori
 				mult = (1 + lambda * net->upFactor)/(1 + lambda);

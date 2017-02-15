@@ -24,9 +24,9 @@ void fillRandom(CLNetDataType * values, CLUInt nValues, CLNetDataType mult, CLNe
 {
 	for(CLUInt i = 0; i < nValues; ++i) {
 		values[i] = CLRandomValue() * mult + shift;
-//		printf("%g, ", values[i]);
+		printf("%g, ", values[i]);
 	}
-//	printf("\n");
+	printf("\n");
 }
 
 void normalize(CLNetDataType * values, CLUInt nValues)
@@ -94,7 +94,7 @@ void setupNetForIris(CLNet * net)
 	CLUInt nTargets = 3;
 
 	CLUInt neuronsPerLayer[] = {7, 5, 3};
-	CLFunction functionPerLayer[] = {CLFunctionRadbas, CLFunctionRadbas, CLFunctionLinear};
+	CLFunction functionPerLayer[] = {CLFunctionRadbas, CLFunctionTansig, CLFunctionLinear};
 
 	CLMatrix * patterns = calloc(1, sizeof(CLMatrix));
 	CLMatrixInitWithCSV(patterns, "irisInputs.csv");
@@ -107,7 +107,7 @@ void setupNetForIris(CLNet * net)
 			  nLayers, neuronsPerLayer, functionPerLayer,
 			  nTargets, targets->values,
 			  name, CLTrue, 0, CLTrue);
-	fillRandom(net->w, net->nWeights, 1, 0);
+	fillRandom(net->w, net->nWeights, 1, -0.5);
 }
 
 CLNetDataType function(CLNetDataType x)

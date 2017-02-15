@@ -14,7 +14,7 @@ __kernel void arrayMemSet(__global CLNetDataType * restrict array, uint elements
 	}
 }
 
-//Activations
+//Functions
 __kernel void linear(__global CLNetDataType * restrict derivativeMatrix,
 					 __global CLNetDataType * restrict activatedMatrix,
 					 __global const CLNetDataType * restrict valuesMatrix,

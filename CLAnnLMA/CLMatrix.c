@@ -138,9 +138,9 @@ void CLMatrixNormalize(CLMatrix * matrix)
 {
 	CLNetDataType max = fabs(matrix->values[0]);
 	for (CLUInt i = 1 ; i < matrix->elements; ++i) {
-		CLNetDataType val = matrix->values[i];
-		if (fabs(val) > max) {
-			max = fabs(val);
+		CLNetDataType val = fabs(matrix->values[i]);
+		if (val > max) {
+			max = val;
 		}
 	}
 
@@ -213,7 +213,7 @@ void CLMatrixPrint(CLMatrix * matrix, CLMatrixTranspose transpose)
 	for (CLUInt r = 0; r < rows; ++r) {
 		for (CLUInt c = 0; c < cols; ++c) {
 			CLUInt index = (transpose == CLMatrixTrans) ? c * cols + r : r * cols + c;
-			printf("%.3f ", matrix->values[index]);
+			printf("%g ", matrix->values[index]);
 
 		}
 		printf("\n");
