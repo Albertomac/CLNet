@@ -64,7 +64,6 @@ void setupNetForXOR(CLNet * net)
 			  nTargets, _targets,
 			  name, CLFalse, 0, CLFalse);
 
-	fillRandom(net->w, net->nWeights, 2, -1);
 
 	//2x2x1 CLFunctionTansig
 //	CLFloat _weights[] =
@@ -120,11 +119,11 @@ void setupForFunction(CLNet * net)
 	CLString name = "Function";
 	CLUInt nPatterns = 50;
 	CLUInt nInputs = 1;
-	CLUInt nLayers = 2;
+	CLUInt nLayers = 3;
 	CLUInt nTargets = 1;
 
-	CLUInt neuronsPerLayer[] = {8, 1};
-	CLFunction functionPerLayer[] = {CLFunctionTansig, CLFunctionLinear};
+	CLUInt neuronsPerLayer[] = {8, 4, 1};
+	CLFunction functionPerLayer[] = {CLFunctionTansig, CLFunctionTansig, CLFunctionLinear};
 
 	CLNetDataType * _patterns = calloc(nPatterns, sizeof(CLNetDataType));
 	CLNetDataType * _targets = calloc(nPatterns, sizeof(CLNetDataType));
@@ -141,9 +140,7 @@ void setupForFunction(CLNet * net)
 	CLNetInit(net, nPatterns, nInputs, _patterns,
 			  nLayers, neuronsPerLayer, functionPerLayer,
 			  nTargets, _targets,
-			  name, CLTrue, 0, CLFalse);
-
-	fillRandom(net->w, net->nWeights, 2, -1);
+			  name, CLTrue, 0, CLTrue);
 }
 
 int main(int argc, const char * argv[]) {

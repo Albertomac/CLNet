@@ -885,10 +885,11 @@ void CLNetTrainLMA(CLNet * net, CLDeviceContext * devContext)
 				i++;
 			}
 
-			//TODO: SISTEMARE QUESTA COSA IMMEDIATAMENTE
 			if (isnan(newError) || lambda > 1e11 || lambda < 1e-20) {
 				CLNetInitializeWeights(net, devContext);
 				lambda = net->initialLambda;
+				i = 0;
+				printf("\n\n WEIGHTS RE-INITIALIZED\n\n");
 				break;
 			}
 		}
