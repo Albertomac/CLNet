@@ -424,6 +424,13 @@ void CLReleaseEvent(CLEvent event, CLStringConst name)
 	CLErrorCheck(error, "clReleaseEvent", name, CHECK_NOT_EXIT);
 }
 
+void CLReleaseEvents(CLUInt numberOfEvents, CLEvent * events)
+{
+	for (CLUInt i = 0; i < numberOfEvents; ++i) {
+		CLReleaseEvent(events[i], "releaseEvents");
+	}
+}
+
 
 #pragma mark Useful Stuff
 

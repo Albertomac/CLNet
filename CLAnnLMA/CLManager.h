@@ -77,6 +77,7 @@ void CLReleaseProgram(CLProgram program, CLStringConst name);
 void CLReleaseKernel(CLKernel kernel, CLStringConst name);
 void CLReleaseMemObject(CLMem var, CLStringConst name);
 void CLReleaseEvent(CLEvent event, CLStringConst name);
+void CLReleaseEvents(CLUInt numberOfEvents, CLEvent * events);
 
 
 #pragma mark Useful Stuff

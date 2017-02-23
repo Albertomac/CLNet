@@ -1,7 +1,6 @@
 #define TRUE 1
 #define FALSE 0
 #define DEBUG TRUE
-#define COMPUTE_LAYER_LINEAR 0
 #define COMPUTE_JACOBIAN_MULTIPLY_LINEAR 0
 
 
@@ -24,9 +23,6 @@ __kernel void arrayMemSet(__global CLNetDataType * restrict array, uint elements
 		array[id] = value;
 	}
 }
-
-
-#if COMPUTE_LAYER_LINEAR
 
 __kernel void linear(__global CLNetDataType * restrict derivativeMatrix,
 					 __global CLNetDataType * restrict activatedMatrix,
@@ -79,70 +75,6 @@ __kernel void radbas(__global CLNetDataType * restrict derivativeMatrix,
 	activatedMatrix[x] = value;
 	derivativeMatrix[x] = -2 * value * val;
 }
-
-#else
-
-//Functions
-__kernel void linear(__global CLNetDataType * restrict derivativeMatrix,
-					 __global CLNetDataType * restrict activatedMatrix,
-					 __global const CLNetDataType * restrict valuesMatrix,
-					 uint rows, uint columns)
-{
-	uint x = get_global_id(1);
-	uint y = get_global_id(0);
-
-	if (x >= rows || y >= columns) return;
-
-	activatedMatrix[x * columns + y] = valuesMatrix[x * columns + y];
-	derivativeMatrix[x * columns + y] = 1;
-}
-
-__kernel void sigmoid(__global CLNetDataType * restrict derivativeMatrix,
-					  __global CLNetDataType * restrict activatedMatrix,
-					  __global const CLNetDataType * restrict valuesMatrix,
-					  uint rows, uint columns)
-{
-	uint x = get_global_id(1);
-	uint y = get_global_id(0);
-
-	if (x >= rows || y >= columns) return;
-
-	CLNetDataType value = 1 / (1 + exp(- valuesMatrix[x * columns + y]));
-	activatedMatrix[x * columns + y] = value;
-	derivativeMatrix[x * columns + y] = value * (1 - value);
-}
-
-__kernel void tansig(__global CLNetDataType * restrict derivativeMatrix,
-					 __global CLNetDataType * restrict activatedMatrix,
-					 __global const CLNetDataType * restrict valuesMatrix,
-					 uint rows, uint columns)
-{
-    uint x = get_global_id(1);
-    uint y = get_global_id(0);
-
-	if (x >= rows || y >= columns) return;
-
-	CLNetDataType value = tanh(valuesMatrix[x * columns + y]);
-	activatedMatrix[x * columns + y] = value;
-	derivativeMatrix[x * columns + y] = 1 - value * value;
-}
-
-__kernel void radbas(__global CLNetDataType * restrict derivativeMatrix,
-					 __global CLNetDataType * restrict activatedMatrix,
-					 __global const CLNetDataType * restrict valuesMatrix,
-					 uint rows, uint columns)
-{
-	uint x = get_global_id(1);
-	uint y = get_global_id(0);
-
-	if (x >= rows || y >= columns) return;
-
-	CLNetDataType val = valuesMatrix[x * columns + y];
-	CLNetDataType value = exp(-val * val);
-	activatedMatrix[x * columns + y] = value;
-	derivativeMatrix[x * columns + y] = -2 * value * val;
-}
-#endif
 
 //Chi Squared
 static void inline reduceInline(uint localId, __global CLNetDataType * restrict partialSums, __local CLNetDataType * localSums)
