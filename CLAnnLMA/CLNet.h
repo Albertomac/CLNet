@@ -20,7 +20,7 @@ typedef struct {
 	CLPlatform platform;
 	CLDevice device;
 	CLContext context;
-	CLQueue queue;
+	CLQueue * queue;
 	CLProgram program;
 
 	CLKernel kernelMemSet;

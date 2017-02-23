@@ -41,6 +41,7 @@ void CLMatrixSaveCSV(CLMatrix * matrix, CLStringConst file);
 
 //Values
 void CLMatrixFillRandom(CLMatrix * matrix);
+void CLMatrixFillRandomWithMult(CLMatrix * matrix, CLNetDataType mult, CLNetDataType shift);
 void CLMatrixFillValue(CLMatrix * matrix, CLNetDataType value);
 void CLMatrixUpdateValues(CLMatrix * matrix, const CLNetDataType * newValues);
 void CLMatrixNormalize(CLMatrix * matrix);

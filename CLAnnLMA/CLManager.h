@@ -26,9 +26,9 @@
 void CLPrintPlatforms();
 void CLPrintDevices(CLPlatform platform);
 void CLPrintStats(CLEvent start, CLEvent finish, CLUInt operations, CLStringConst name);
-CLFloat timeBetweenEventsNS(CLEvent start, CLEvent finish);
-CLFloat timeBetweenEventsMS(CLEvent start, CLEvent finish);
-CLFloat timeBetweenEventsS(CLEvent start, CLEvent finish);
+CLDouble timeBetweenEventsNS(CLEvent start, CLEvent finish);
+CLDouble timeBetweenEventsMS(CLEvent start, CLEvent finish);
+CLDouble timeBetweenEventsS(CLEvent start, CLEvent finish);
 
 #pragma mark Error
 

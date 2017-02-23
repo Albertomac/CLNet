@@ -1,6 +1,17 @@
 #define TRUE 1
 #define FALSE 0
 #define DEBUG TRUE
+#define COMPUTE_LAYER_LINEAR 0
+#define COMPUTE_JACOBIAN_MULTIPLY_LINEAR 0
+
+
+#if CLNetPrecisionDouble
+	#define CLNetDataType double
+	#define CLNetDataType4 double4
+#else
+	#define	CLNetDataType float
+	#define CLNetDataType float4
+#endif
 
 //#if CLNetDataType == double
 //	#pragma OPENCL EXTENSION cl_khr_fp64 : enable
@@ -13,6 +24,63 @@ __kernel void arrayMemSet(__global CLNetDataType * restrict array, uint elements
 		array[id] = value;
 	}
 }
+
+
+#if COMPUTE_LAYER_LINEAR
+
+__kernel void linear(__global CLNetDataType * restrict derivativeMatrix,
+					 __global CLNetDataType * restrict activatedMatrix,
+					 __global const CLNetDataType * restrict valuesMatrix,
+					 uint elements)
+{
+	uint x = get_global_id(0);
+	if (x >= elements) return;
+
+	activatedMatrix[x] = valuesMatrix[x];
+	derivativeMatrix[x] = 1;
+}
+
+__kernel void sigmoid(__global CLNetDataType * restrict derivativeMatrix,
+					  __global CLNetDataType * restrict activatedMatrix,
+					  __global const CLNetDataType * restrict valuesMatrix,
+					  uint elements)
+{
+	uint x = get_global_id(0);
+	if (x >= elements) return;
+
+	CLNetDataType value = 1 / (1 + exp(- valuesMatrix[x]));
+	activatedMatrix[x] = value;
+	derivativeMatrix[x] = value * (1 - value);
+}
+
+__kernel void tansig(__global CLNetDataType * restrict derivativeMatrix,
+					 __global CLNetDataType * restrict activatedMatrix,
+					 __global const CLNetDataType * restrict valuesMatrix,
+					 uint elements)
+{
+	uint x = get_global_id(0);
+	if (x >= elements) return;
+
+	CLNetDataType value = tanh(valuesMatrix[x]);
+	activatedMatrix[x] = value;
+	derivativeMatrix[x] = 1 - value * value;
+}
+
+__kernel void radbas(__global CLNetDataType * restrict derivativeMatrix,
+					 __global CLNetDataType * restrict activatedMatrix,
+					 __global const CLNetDataType * restrict valuesMatrix,
+					 uint elements)
+{
+	uint x = get_global_id(0);
+	if (x >= elements) return;
+
+	CLNetDataType val = valuesMatrix[x];
+	CLNetDataType value = exp(-val * val);
+	activatedMatrix[x] = value;
+	derivativeMatrix[x] = -2 * value * val;
+}
+
+#else
 
 //Functions
 __kernel void linear(__global CLNetDataType * restrict derivativeMatrix,
@@ -74,6 +142,7 @@ __kernel void radbas(__global CLNetDataType * restrict derivativeMatrix,
 	activatedMatrix[x * columns + y] = value;
 	derivativeMatrix[x * columns + y] = -2 * value * val;
 }
+#endif
 
 //Chi Squared
 static void inline reduceInline(uint localId, __global CLNetDataType * restrict partialSums, __local CLNetDataType * localSums)
@@ -132,6 +201,17 @@ __kernel void jacobianDiagonal(__global CLNetDataType * restrict jacobian, uint 
 	jacobian[x * columnsJacobian + y] = (mod(x, dimDiag) == mod(y_old, dimDiag)) * value;
 }
 
+#if COMPUTE_JACOBIAN_MULTIPLY_LINEAR
+__kernel void jacobianMultiply(__global CLNetDataType * restrict jacobian, uint elementsJacobian, uint columnsJacobian,
+							   __global const CLNetDataType * restrict values)
+{
+	uint x = get_global_id(0);
+
+	if (x >= elementsJacobian) return;
+
+	jacobian[x] *= values[x / columnsJacobian];
+}
+#else 
 __kernel void jacobianMultiply(__global CLNetDataType * restrict jacobian, uint rowsJacobian, uint columnsJacobian,
 							   __global const CLNetDataType * restrict values)
 {
@@ -142,6 +222,7 @@ __kernel void jacobianMultiply(__global CLNetDataType * restrict jacobian, uint 
 
 	jacobian[x * columnsJacobian + y] *= values[x];
 }
+#endif
 
 
 //delta
@@ -169,40 +250,73 @@ __kernel void updateDiagonal(__global CLNetDataType * restrict matrix, uint dim,
 }
 
 
-#define TOL 1e-30
-#define a(r, c) a[(r * npar + c)]
-#define l(r, c) l[(r * npar + c)]
+//#define TOL 1e-30
+//#define a(r, c) a[(r * npar + c)]
+//#define l(r, c) l[(r * npar + c)]
+//
+//__kernel void choleskyDecomposition(__global CLNetDataType * restrict l,
+//									__global CLNetDataType * restrict a,
+//									__global CLNetDataType * sums, uint npar, __global uint * ill, uint x)
+//{
+//	uint y = get_global_id(0);
+//
+//	if (ill[0] == 1 || y >= npar) {
+//		return;
+//	}
+//
+//	CLNetDataType diag = a(x, x) - sums[x];
+//
+//	if (diag < TOL) {
+//		ill[0] = 1;
+//		return;
+//	}
+//
+//	diag = sqrt(diag);
+//
+//	if (y > x) {
+//		CLNetDataType sum = a(x, y);
+//		for (uint k = 0; k < x; ++k) {
+//			sum -= l(k, x) * l(k, y);
+//		}
+//		sum /= diag;
+//		l(x, y) = sum;
+//		sums[y] += sum * sum;
+//	}
+//
+//	if (y == x) {
+//		l(x, x) = diag;
+//	}
+//}
 
-__kernel void choleskyDecomposition(__global CLNetDataType * restrict l,
-									__global CLNetDataType * restrict a,
-									__global CLNetDataType * sums, uint npar, __global uint * ill, uint x)
+#define TOL 1e-30
+#define A(r, c) A[(r * columns + c)]
+#define L(r, c) L[(r * columns + c)]
+
+__kernel void choleskyDecomposition(__global CLNetDataType * restrict L,
+									__global CLNetDataType * restrict A,
+									__global CLNetDataType * sums, uint columns,
+									__global uint * ill, uint x)
 {
 	uint y = get_global_id(0);
 
-	if (ill[0] == 1 || y >= npar) {
-		return;
-	}
+	if (ill[0] == 1 || y >= columns) return;
 
-	CLNetDataType diag = a(x, x) - sums[x];
-
+	CLNetDataType diag = A(x, x) - sums[x];
 	if (diag < TOL) {
 		ill[0] = 1;
 		return;
 	}
-
 	diag = sqrt(diag);
 
 	if (y > x) {
-		CLNetDataType sum = a(x, y);
+		CLNetDataType sum = A(x, y);
 		for (uint k = 0; k < x; ++k) {
-			sum -= l(k, x) * l(k, y);
+			sum -= L(k, x) * L(k, y);
 		}
 		sum /= diag;
-		l(x, y) = sum;
+		L(x, y) = sum;
 		sums[y] += sum * sum;
 	}
 
-	if (y == x) {
-		l(x, x) = diag;
-	}
+	if (y == x) L(x, x) = diag;
 }

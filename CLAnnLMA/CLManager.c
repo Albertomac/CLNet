@@ -112,12 +112,12 @@ void CLPrintDevices(CLPlatform platform)
 
 void CLPrintStats(CLEvent start, CLEvent finish, CLUInt operations, CLStringConst name)
 {
-	CLFloat time = timeBetweenEventsNS(start, finish);
-	CLFloat flops = operations / time;
+	CLDouble time = timeBetweenEventsNS(start, finish);
+	CLDouble flops = operations / time;
 	printf("%s: %0.4f - %0.4f GFlops/s\n", name, time, flops);
 }
 
-CLFloat timeBetweenEventsNS(CLEvent start, CLEvent finish)
+CLDouble timeBetweenEventsNS(CLEvent start, CLEvent finish)
 {
 	if (start == NULL || finish == NULL) {
 		return 0.0f;
@@ -130,12 +130,12 @@ CLFloat timeBetweenEventsNS(CLEvent start, CLEvent finish)
 	return timeEnd - timeStart;
 }
 
-CLFloat timeBetweenEventsMS(CLEvent start, CLEvent finish)
+CLDouble timeBetweenEventsMS(CLEvent start, CLEvent finish)
 {
 	return 1.0e-6 * timeBetweenEventsNS(start, finish);
 }
 
-CLFloat timeBetweenEventsS(CLEvent start, CLEvent finish)
+CLDouble timeBetweenEventsS(CLEvent start, CLEvent finish)
 {
 	return 1.0e-9 * timeBetweenEventsNS(start, finish);
 }

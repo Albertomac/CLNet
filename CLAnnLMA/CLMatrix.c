@@ -45,7 +45,8 @@ void CLMatrixInitWithValues(CLMatrix * matrix, CLNetDataType * values, CLUInt ro
 
 	} else {
 		matrix->name = calloc(BUFFER_STRING, sizeof(CLChar));
-		strcpy(matrix->name, name);		matrix->rows = rows;
+		strcpy(matrix->name, name);
+		matrix->rows = rows;
 		matrix->columns = columns;
 		matrix->elements = matrix->rows * matrix->columns;
 		matrix->size = sizeof(CLNetDataType) * matrix->elements;
@@ -113,11 +114,16 @@ void CLMatrixSaveCSV(CLMatrix * matrix, CLStringConst file)
 	fclose(f);
 }
 
-void CLMatrixFillRandom(CLMatrix * matrix)
+void CLMatrixFillRandomWithMult(CLMatrix * matrix, CLNetDataType mult, CLNetDataType shift)
 {
 	for (CLUInt i = 0; i < matrix->elements; ++i) {
-		matrix->values[i] = CLRandomValue();
+		matrix->values[i] = CLRandomValue() * mult + shift;
 	}
+}
+
+void CLMatrixFillRandom(CLMatrix * matrix)
+{
+	CLMatrixFillRandomWithMult(matrix, 1, 0);
 }
 
 void CLMatrixFillValue(CLMatrix * matrix, CLNetDataType value)
