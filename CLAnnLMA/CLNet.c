@@ -749,7 +749,7 @@ void CLNetCholeskyDecomposition(CLNet * net, CLDeviceContext * devContext)
 
 	//Cholesky
 	CLSize lws[] = {BLOCK_SIZE_CHOLESKY_DECOMPOSITION};
-	CLSize gws[] = {CLGetOptimalGlobalWorkItemsSize(net->nWeights, lws[0])};
+	CLSize gws[] = {CLGetOptimalGlobalWorkItemsSize(net->cholesky->rows, lws[0])};
 
 	CLUInt nArg = 0;
 	CLKernel kernelCholeskyDecomposition = devContext->kernelCholeskyDecomposition;
