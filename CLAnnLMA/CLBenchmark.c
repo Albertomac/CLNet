@@ -13,7 +13,7 @@ FILE * f;
 void CLBenchmarkSetup(CLStringConst path)
 {
 	f = fopen(path, "w+");
-	fprintf(f, "Label;Elements;Time(ms);Bandwidth(GB/s);Flops\n");
+	fprintf(f, "Label;Elements;Time(ms);Bandwidth(GB/s);GFlops\n");
 }
 
 void CLBenchmarkLog(CLEvent start, CLEvent finish, CLSize loads, CLSize stores, CLSize elements, CLSize dataSize, CLSize operations, CLStringConst name)
@@ -31,3 +31,10 @@ void CLBenchmarkLog(CLEvent start, CLEvent finish, CLSize loads, CLSize stores, 
 	fprintf(f, "%s;%zu;%10g;%10g;%10g\n", name, elements, totalTimeMS, bandwidth, flops);
 
 }
+
+void CLBenchmarkClose()
+{
+	if (f != NULL)
+		fclose(f);
+}
+

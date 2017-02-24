@@ -14,5 +14,5 @@
 
 void CLBenchmarkSetup(CLStringConst path);
 void CLBenchmarkLog(CLEvent start, CLEvent finish, CLSize loads, CLSize stores, CLSize elements, CLSize dataSize, CLSize operations, CLStringConst name);
-
+void CLBenchmarkClose();
 #endif /* CLBenchmark_h */

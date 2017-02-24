@@ -1,7 +1,7 @@
 #define TRUE 1
 #define FALSE 0
 #define DEBUG TRUE
-#define COMPUTE_JACOBIAN_MULTIPLY_LINEAR 0
+#define COMPUTE_JACOBIAN_MULTIPLY_LINEAR 1
 
 
 #if CLNetPrecisionDouble
@@ -107,7 +107,7 @@ __kernel void chiSquared(__global const CLNetDataType * restrict fy, __global co
 	uint localId  = get_local_id(0);
 	uint index = get_group_id(0) * get_local_size(0) + localId;
 
-	localSums[localId] = (index < n) ? res(fy[globalId], y[globalId]) : 0.0f;
+	localSums[localId] = (index < n) ? res(fy[globalId], y[globalId]) : 0;
 	reduceInline(localId, partialSums, localSums);
 }
 

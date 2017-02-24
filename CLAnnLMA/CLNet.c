@@ -404,7 +404,7 @@ void CLNetMatrixMultiply(CLNet * net, CLDeviceContext * devContext,
 	CLSize n = matrixB->columns;
 	CLSize k = matrixA->columns;
 
-	CLEvent * events = calloc(10, sizeof(CLEvent));
+	CLEvent * events = calloc(NUMBER_OF_EVENTS, sizeof(CLEvent));
 
 	clblasStatus status = GEMM(clblasRowMajor, clblasNoTrans, clblasNoTrans, m, n, k,
 							   1, matrixA->mem, matrixA->offsetMem, k,
@@ -528,27 +528,25 @@ void CLNetChiSquared(CLNet * net, CLDeviceContext * devContext)
 	CLSetKernelArg(kernelChiSquaredReduce, nArg++, sizeof(net->chiSquaredError->mem), &net->chiSquaredError->mem, "partialSums");
 	CLSetKernelArg(kernelChiSquaredReduce, nArg++, sizeof(CLNetDataType) * lws[0], NULL, "localSums");
 
-	CLEnqueueNDRangeKernel(devContext->queue[0], kernelChiSquaredReduce, 1, NULL, gws, lws, 0, NULL, &eventChiSquaredReduce, kChiSquaredReduce);
+	CLEnqueueNDRangeKernel(devContext->queue[0], kernelChiSquaredReduce, 1, NULL, gws, lws, 1, &eventChiSquared, &eventChiSquaredReduce, kChiSquaredReduce);
 
 
 	//ReadError
 	CLEvent eventReadErrorValue;
-	CLInt error = clEnqueueReadBuffer(devContext->queue[0], net->chiSquaredError->mem, CLTrue, 0, sizeof(CLNetDataType), &net->errorChiSquared, 0, NULL, &eventReadErrorValue);
+	CLInt error = clEnqueueReadBuffer(devContext->queue[0], net->chiSquaredError->mem, CLTrue, 0, sizeof(CLNetDataType), &net->errorChiSquared, 1, &eventChiSquaredReduce, &eventReadErrorValue);
 	CLErrorCheck(error, "clEnqueueReadBuffer", "read errorValue", CHECK_EXIT);
 
 #pragma mark BENCHMARK_CHI_SQUARED
 	if (net->benchmark == CLTrue) {
-//
-//		CLDouble time = 0;
-//		CLDouble flops = 0;
-//
-//		time = timeBetweenEventsNS(eventChiSquared, eventChiSquared);
-//		flops = 3 * net->outputs->elements;
-//		printStat(flops, time, "chiSquared");
-//
-//		time = timeBetweenEventsNS(eventChiSquaredReduce, eventChiSquaredReduce);
-//		flops = 3 * nwg;
-//		printStat(flops, time, "chiSquaredReduce");
+		CLWaitForEvent(&eventChiSquaredReduce, "eventChiSquaredReduce");
+
+		CLSize loads = net->trainingTargets->elements + net->outputs->elements + net->chiSquaredError->elements;
+		CLSize stores = net->chiSquaredError->elements + 1;
+		CLSize elements = net->trainingTargets->elements + net->outputs->elements + net->chiSquaredError->elements + 1;
+		CLSize dataSize = elements * sizeof(CLNetDataType);
+		CLSize operations = 3 * net->trainingTargets->elements + 3 * net->chiSquaredError->elements;
+		CLStringConst label = "ChiSquared";
+		CLBenchmarkLog(eventChiSquared, eventChiSquaredReduce, loads, stores, elements, dataSize, operations, label);
 	}
 
 	//Releases
@@ -579,10 +577,19 @@ void CLNetJacobianDiagonal(CLNet * net, CLDeviceContext * devContext, CLMatrix *
 
 #pragma BENCHMARK_JACOBIAN_DIAGONAL
 	if (net->benchmark == CLTrue) {
+		CLWaitForEvent(event, "eventJacobianDiagonal");
+
+		CLSize loads = jacobian->elements + values->elements;
+		CLSize stores = jacobian->elements;
+		CLSize elements = jacobian->elements + values->elements;
+		CLSize dataSize = elements * sizeof(CLNetDataType);
+		CLSize operations = jacobian->elements * 8;
+		CLStringConst label = "jacobianDiagonal";
+		CLBenchmarkLog(*event, *event, loads, stores, elements, dataSize, operations, label);
 	}
 }
 
-#define COMPUTE_JACOBIAN_MULTIPLY_LINEAR 0
+#define COMPUTE_JACOBIAN_MULTIPLY_LINEAR 1
 
 void CLNetJacobianMultiply(CLNet * net, CLDeviceContext * devContext, CLMatrix * jacobian, CLMatrix * values, CLEvent * event)
 {
@@ -602,6 +609,15 @@ void CLNetJacobianMultiply(CLNet * net, CLDeviceContext * devContext, CLMatrix *
 
 #pragma BENCHMARK_JACOBIAN_MULTIPLY
 	if (net->benchmark == CLTrue) {
+		CLWaitForEvent(event, "eventJacobianDiagonal");
+
+		CLSize loads = jacobian->elements + values->elements;
+		CLSize stores = jacobian->elements;
+		CLSize elements = jacobian->elements + values->elements;
+		CLSize dataSize = elements * sizeof(CLNetDataType);
+		CLSize operations = jacobian->elements * 2;
+		CLStringConst label = "jacobianMultiply";
+		CLBenchmarkLog(*event, *event, loads, stores, elements, dataSize, operations, label);
 	}
 #else
 	CLSize lws[] = {BLOCK_SIZE_JACOBIAN_MULTIPLY,
@@ -620,6 +636,15 @@ void CLNetJacobianMultiply(CLNet * net, CLDeviceContext * devContext, CLMatrix *
 
 #pragma BENCHMARK_JACOBIAN_MULTIPLY
 	if (net->benchmark == CLTrue) {
+		CLWaitForEvent(event, "eventJacobianDiagonal");
+
+		CLSize loads = jacobian->elements + values->elements;
+		CLSize stores = jacobian->elements;
+		CLSize elements = jacobian->elements + values->elements;
+		CLSize dataSize = elements * sizeof(CLNetDataType);
+		CLSize operations = jacobian->elements * 2;
+		CLStringConst label = "jacobianMultiply";
+		CLBenchmarkLog(*event, *event, loads, stores, elements, dataSize, operations, label);
 	}
 #endif
 }
@@ -793,10 +818,15 @@ void CLNetCholeskyDecomposition(CLNet * net, CLDeviceContext * devContext)
 
 #pragma mark BENCHMARK_CHOLESKY_DECOMPOSITION
 	if (net->benchmark == CLTrue) {
-//		CLDouble time = timeBetweenEventsNS(eventCholeskyDecomposition[0], eventCholeskyDecomposition[net->cholesky->rows - 1]);
-//		CLDouble flops = 1;
+//		CLWaitForEvent(event, "eventJacobianDiagonal");
 //
-////		printStat(flops, time, "choleskyDecomposition");
+//		CLSize loads = jacobian->elements + values->elements;
+//		CLSize stores = jacobian->elements;
+//		CLSize elements = jacobian->elements + values->elements;
+//		CLSize dataSize = elements * sizeof(CLNetDataType);
+//		CLSize operations = jacobian->elements * 2;
+//		CLStringConst label = "jacobianMultiply";
+//		CLBenchmarkLog(*event, *event, loads, stores, elements, dataSize, operations, label);
 	}
 
 	for (CLUInt i = 0; i < net->cholesky->rows; ++i) {

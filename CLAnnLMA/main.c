@@ -13,12 +13,19 @@
 #include "CLRandom.h"
 #include "CLBenchmark.h"
 
+#include <signal.h>
+#include "CLBenchmark.h"
 
 //OpenCL stuff
 CLInt platformIndex = 0;
 CLInt deviceIndex = 2;
 CLPlatform platform;
 CLDevice device;
+
+void closeHandler(int interrupt)
+{
+	CLBenchmarkClose();
+}
 
 void fillRandom(CLNetDataType * values, CLUInt nValues, CLNetDataType mult, CLNetDataType shift)
 {
@@ -86,6 +93,8 @@ void setupNetForXOR(CLNet * net)
 
 void setupNetForIris(CLNet * net)
 {
+	signal(SIGINT, closeHandler);
+
 	CLString name = "Iris";
 	CLUInt nPatterns = 150;
 	CLUInt nInputs = 4;
