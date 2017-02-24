@@ -744,7 +744,7 @@ void CLNetCholeskyDecomposition(CLNet * net, CLDeviceContext * devContext)
 	//Set ill to zero
 	net->ill = -1;
 	CLEvent eventWriteIll;
-	clEnqueueWriteBuffer(devContext->queue[0], net->illMem, CLTrue, 0, sizeof(CLUInt), &net->ill, 0, NULL, &eventWriteIll);
+	clEnqueueWriteBuffer(devContext->queue[0], net->illMem, CLTrue, 0, sizeof(CLInt), &net->ill, 0, NULL, &eventWriteIll);
 	CLReleaseEvent(eventWriteIll, "eventWriteIll");
 
 	//Cholesky

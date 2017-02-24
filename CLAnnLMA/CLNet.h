@@ -91,7 +91,7 @@ typedef struct {
 	CLMatrix * delta;
 	CLMatrix * cholesky;
 	CLMatrix * choleskySums;
-	CLBool ill;
+	CLInt ill;
 	CLMem illMem;
 
 	CLBool verbose;

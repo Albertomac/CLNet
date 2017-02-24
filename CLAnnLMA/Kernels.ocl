@@ -198,7 +198,7 @@ __kernel void updateDiagonal(__global CLNetDataType * restrict matrix, uint dim,
 __kernel void choleskyDecomposition(__global CLNetDataType * restrict L,
 									__global CLNetDataType * restrict A,
 									__global CLNetDataType * sums, uint columns,
-									__global uint * ill, uint x)
+									__global int * ill, uint x)
 {
 	uint y = get_global_id(0);
 
