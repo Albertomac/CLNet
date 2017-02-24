@@ -781,8 +781,9 @@ void CLNetCholeskyDecomposition(CLNet * net, CLDeviceContext * devContext)
 		CLWaitForEvent(&eventCholeskyDecomposition[indexEvent], "eventCholeskyDecomposition");
 
 		CLSize elements = net->cholesky->rows * net->cholesky->rows * net->cholesky->rows / 3;
+		CLSize dataSize = elements * sizeof(CLNetDataType);
 		CLSize operations = net->cholesky->rows * net->cholesky->rows * net->cholesky->rows / 3;
-		CLBenchmarkElementsLog(eventCholeskyDecomposition[0], eventCholeskyDecomposition[indexEvent], elements, operations, (net->ill == 1 ? "CholeskyDecompositionIll*" : "CholeskyDecomposition"));
+		CLBenchmarkBandwidthLog(eventCholeskyDecomposition[0], eventCholeskyDecomposition[indexEvent], elements, dataSize, operations, (net->ill == 1 ? "CholeskyDecompositionIll*" : "CholeskyDecomposition"));
 	}
 
 	for (CLUInt i = 0; i < net->cholesky->rows; ++i) {
