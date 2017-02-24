@@ -815,7 +815,7 @@ void CLNetSolveTriangular(CLNet * net, CLDeviceContext * devContext, CLMatrix * 
 	if (net->benchmark == CLTrue) {
 		CLWaitForEvent(&events[indexEvent], "eventTRSV");
 
-		CLSize elements = (cholesky->elements - cholesky->rows) / 2 + cholesky->rows;
+		CLSize elements = cholesky->rows;//(cholesky->elements - cholesky->rows) / 2 + cholesky->rows;
 		CLSize operations = elements * elements;
 
 		CLBenchmarkElementsLog(events[0], events[indexEvent], elements, operations, "TRSV");
@@ -1144,7 +1144,7 @@ void CLNetTrainWithDeviceContext(CLNet * net, CLDeviceContext * devContext)
 
 	CLNetTrainLMA(net, devContext);
 
-	CLNetPrintForward(net, devContext);
+	//CLNetPrintForward(net, devContext);
 }
 
 void CLNetPrintResultsWithInputs(CLNet * net, CLUInt nPatterns, CLUInt nInputs, CLNetDataType * inputs)

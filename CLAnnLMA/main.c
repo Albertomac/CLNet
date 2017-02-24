@@ -106,11 +106,11 @@ void setupForFunction(CLNet * net)
 	CLString name = "Function";
 	CLUInt nPatterns = 2000;
 	CLUInt nInputs = 1;
-	CLUInt nLayers = 5;
+	CLUInt nLayers = 6;
 	CLUInt nTargets = 1;
 
-	CLUInt neuronsPerLayer[] = {33, 27, 17, 13, 7};
-	CLFunction functionPerLayer[] = {CLFunctionTansig, CLFunctionSigmoid, CLFunctionTansig, CLFunctionRadbas, CLFunctionLinear};
+	CLUInt neuronsPerLayer[] = {33, 27, 17, 13, 7, 1};
+	CLFunction functionPerLayer[] = {CLFunctionTansig, CLFunctionSigmoid, CLFunctionTansig, CLFunctionRadbas, CLFunctionRadbas, CLFunctionLinear};
 
 	CLNetDataType * _patterns = calloc(nPatterns, sizeof(CLNetDataType));
 	CLNetDataType * _targets = calloc(nPatterns, sizeof(CLNetDataType));
@@ -143,7 +143,7 @@ int main(int argc, const char * argv[]) {
 
 	CLNet * net = calloc(1, sizeof(CLNet));
 
-	switch (1) {
+	switch (2) {
 		case 0:
 			setupNetForXOR(net);
 			break;
