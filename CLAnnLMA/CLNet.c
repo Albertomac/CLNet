@@ -780,8 +780,8 @@ void CLNetCholeskyDecomposition(CLNet * net, CLDeviceContext * devContext)
 		CLUInt indexEvent = net->cholesky->rows -1;
 		CLWaitForEvent(&eventCholeskyDecomposition[indexEvent], "eventCholeskyDecomposition");
 
-		CLSize elements = (net->cholesky->elements - net->cholesky->rows) / 2 + net->cholesky->rows;
-		CLSize operations = elements * elements * elements / 3;
+		CLSize elements = net->cholesky->rows * net->cholesky->rows * net->cholesky->rows / 3;
+		CLSize operations = net->cholesky->rows * net->cholesky->rows * net->cholesky->rows / 3;
 		CLBenchmarkElementsLog(eventCholeskyDecomposition[0], eventCholeskyDecomposition[indexEvent], elements, operations, (net->ill == 1 ? "CholeskyDecompositionIll*" : "CholeskyDecomposition"));
 	}
 
