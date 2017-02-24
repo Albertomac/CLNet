@@ -29,6 +29,12 @@ void CLBenchmarkSetup(CLStringConst path)
 	free(fEPath);
 }
 
+void CLBenchmarkReset(CLStringConst path)
+{
+	CLBenchmarkClose();
+	CLBenchmarkSetup(path);
+}
+
 void CLBenchmarkBandwidthLog(CLEvent start, CLEvent finish, CLSize elements, CLSize dataSize, CLSize operations, CLStringConst name)
 {
 	if (fB == NULL) return;

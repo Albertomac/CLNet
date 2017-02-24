@@ -17,8 +17,8 @@
 #include "CLBenchmark.h"
 
 //OpenCL stuff
-CLInt platformIndex = 0;
-CLInt deviceIndex = 2;
+CLInt platformIndex = 3;
+CLInt deviceIndex = 0;
 CLPlatform platform;
 CLDevice device;
 
@@ -31,9 +31,7 @@ void fillRandom(CLNetDataType * values, CLUInt nValues, CLNetDataType mult, CLNe
 {
 	for(CLUInt i = 0; i < nValues; ++i) {
 		values[i] = CLRandomValue() * mult + shift;
-//		printf("%g, ", values[i]);
 	}
-//	printf("\n");
 }
 
 void normalize(CLNetDataType * values, CLUInt nValues)
@@ -70,25 +68,6 @@ void setupNetForXOR(CLNet * net)
 			  nLayers, neuronsPerLayer, functionPerLayer,
 			  nTargets, _targets,
 			  name, CLFalse, 0, CLFalse);
-
-
-	//2x2x1 CLFunctionTansig
-//	CLFloat _weights[] =
-//	{
-//		0.56087324868804345, 0.28466180930578844, 0.48483193599725993, 0.06400278452469621, 0.21066945268565362, 0.71573373999852663
-//	};
-
-	//2x10x1 CLFunctionTansig
-//	CLNetDataType _weights[] =
-//	{
-//		-0.358296722, -1.11181891, -0.875998139, -0.833521724, -0.770012856, -0.597140372, -1.11013341, -0.271296352, -0.373541415, -0.202476129,
-//		-0.825716734, -0.258527756, -0.874694645, -0.964434803, -1.05426013, -0.33673653, -0.601961553, -0.355955094, -0.895164907, -0.904570162,
-//		1.07225227, -0.858597457, -2.14572215, -2.50301027, -0.867024899, 3.39165139, -0.0731235817, 5.88008213, -0.408898056, -0.321799964
-//	};
-//
-//	for (CLUInt i = 0; i < net->nWeights; ++i) {
-//		net->w[i] = _weights[i];
-//	}
 }
 
 void setupNetForIris(CLNet * net)
@@ -112,7 +91,7 @@ void setupNetForIris(CLNet * net)
 	CLNetInit(net, nPatterns, nInputs, patterns->values,
 			  nLayers, neuronsPerLayer, functionPerLayer,
 			  nTargets, targets->values,
-			  name, CLTrue, 0, CLTrue);
+			  name, CLTrue, 0, CLFalse);
 }
 
 CLNetDataType function(CLNetDataType x)
@@ -125,13 +104,13 @@ CLNetDataType function(CLNetDataType x)
 void setupForFunction(CLNet * net)
 {
 	CLString name = "Function";
-	CLUInt nPatterns = 1024 * 5;
+	CLUInt nPatterns = 2000;
 	CLUInt nInputs = 1;
-	CLUInt nLayers = 3;
+	CLUInt nLayers = 5;
 	CLUInt nTargets = 1;
 
-	CLUInt neuronsPerLayer[] = {32, 32, 1};
-	CLFunction functionPerLayer[] = {CLFunctionTansig, CLFunctionRadbas, CLFunctionLinear};
+	CLUInt neuronsPerLayer[] = {33, 27, 17, 13, 7};
+	CLFunction functionPerLayer[] = {CLFunctionTansig, CLFunctionSigmoid, CLFunctionTansig, CLFunctionRadbas, CLFunctionLinear};
 
 	CLNetDataType * _patterns = calloc(nPatterns, sizeof(CLNetDataType));
 	CLNetDataType * _targets = calloc(nPatterns, sizeof(CLNetDataType));
@@ -143,12 +122,11 @@ void setupForFunction(CLNet * net)
 	}
 
 	normalize(_patterns, nPatterns);
-//	normalize(_targets, nPatterns);
 
 	CLNetInit(net, nPatterns, nInputs, _patterns,
 			  nLayers, neuronsPerLayer, functionPerLayer,
 			  nTargets, _targets,
-			  name, CLTrue, 0, CLTrue);
+			  name, CLTrue, 0, CLFalse);
 }
 
 int main(int argc, const char * argv[]) {
@@ -182,6 +160,7 @@ int main(int argc, const char * argv[]) {
 			break;
 	}
 
+	net->maxIterations = 10;
 	CLNetTrainWithDeviceContext(net, devContext);
 
 	printf("Would you like to save weights? [Y/N]\n");

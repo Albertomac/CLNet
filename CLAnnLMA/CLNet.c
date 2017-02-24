@@ -19,22 +19,24 @@
 
 #define BUFFER_STRING 64
 
-#define BLOCK_SIZE_MEMSET 64
-#define BLOCK_SIZE_FUNCTION 32
-#define BLOCK_SIZE_CHI_SQUARED 64
+#define BLOCK_SIZE_BENCHMARK 32
 
-#define BLOCK_SIZE_JACOBIAN_DIAGONAL 32
-#define BLOCK_SIZE_JACOBIAN_MULTIPLY 32
-#define BLOCK_SIZE_JACOBIAN 32
+#define BLOCK_SIZE_MEMSET BLOCK_SIZE_BENCHMARK
+#define BLOCK_SIZE_FUNCTION BLOCK_SIZE_BENCHMARK
+#define BLOCK_SIZE_CHI_SQUARED BLOCK_SIZE_BENCHMARK
 
-#define BLOCK_SIZE_HESSIAN_UPDATE 32
-#define BLOCK_SIZE_CHOLESKY_DECOMPOSITION 256
+#define BLOCK_SIZE_JACOBIAN_DIAGONAL BLOCK_SIZE_BENCHMARK
+#define BLOCK_SIZE_JACOBIAN_MULTIPLY BLOCK_SIZE_BENCHMARK
+#define BLOCK_SIZE_JACOBIAN BLOCK_SIZE_BENCHMARK
 
-#define NUMBER_OF_EVENTS 16
+#define BLOCK_SIZE_HESSIAN_UPDATE BLOCK_SIZE_BENCHMARK
+#define BLOCK_SIZE_CHOLESKY_DECOMPOSITION BLOCK_SIZE_BENCHMARK
+
 
 #pragma mark CLDeviceContext
 
 #define nCommandQueue 16
+#define NUMBER_OF_EVENTS nCommandQueue
 
 void CLDeviceContextInit(CLDeviceContext * devContext, CLPlatform platform, CLDevice device)
 {
@@ -876,7 +878,7 @@ void CLNetTrainLMA(CLNet * net, CLDeviceContext * devContext)
 	net->benchmark = CLTrue;
 
 	if (net->benchmark) {
-		CLBenchmarkSetup("/Volumes/RamDisk");
+		CLBenchmarkSetup(".");
 	}
 
 	CLNetDataType mult;
@@ -935,7 +937,8 @@ void CLNetTrainLMA(CLNet * net, CLDeviceContext * devContext)
 				CLNetForward(net, devContext);									//Forward per calcolare l'errore iniziale
 				CLNetChiSquared(net, devContext);								//Calcolo dell'errore iniziale
 				error = net->errorChiSquared;
-				
+
+				CLBenchmarkReset(".");
 				break;
 			}
 		}
