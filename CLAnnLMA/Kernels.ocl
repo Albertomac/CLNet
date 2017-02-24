@@ -5,10 +5,8 @@
 
 #if CLNetPrecisionDouble
 	#define CLNetDataType double
-	#define CLNetDataType4 double4
 #else
 	#define	CLNetDataType float
-	#define CLNetDataType float4
 #endif
 
 //#if CLNetDataType == double
