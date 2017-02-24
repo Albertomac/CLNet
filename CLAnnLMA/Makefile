@@ -12,7 +12,7 @@ ifeq ($(uname_S),Darwin)
 
 else
 
-	CLBLAS_PATH=/home/studenti/Documents/clBLAS
+	CLBLAS_PATH=/home/bilotta/src/clBLAS
 
 	CFLAGS+= -D_DEFAULT_SOURCE -I $(CLBLAS_PATH)/src
 	LDLIBS=-lrt -lOpenCL -lbsd -L $(CLBLAS_PATH)/build/library -lclBLAS -lm
