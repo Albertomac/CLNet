@@ -202,11 +202,11 @@ __kernel void choleskyDecomposition(__global CLNetDataType * restrict L,
 {
 	uint y = get_global_id(0);
 
-	if (ill[0] == 1 || y >= columns) return;
+	if (ill[0] >= 0 || y >= columns) return;
 
 	CLNetDataType diag = A(x, x) - sums[x];
 	if (diag < TOL) {
-		ill[0] = 1;
+		ill[0] = x;
 		return;
 	}
 	diag = sqrt(diag);

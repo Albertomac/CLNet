@@ -143,7 +143,7 @@ void setupForFunction(CLNet * net)
 	}
 
 	normalize(_patterns, nPatterns);
-//	normalize(_targets, nPatterns);	
+//	normalize(_targets, nPatterns);
 
 	CLNetInit(net, nPatterns, nInputs, _patterns,
 			  nLayers, neuronsPerLayer, functionPerLayer,

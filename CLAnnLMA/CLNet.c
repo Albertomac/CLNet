@@ -692,18 +692,17 @@ void CLNetCalculateD(CLNet * net, CLDeviceContext * devContext)
 				  1, devContext->queue, 1, &eventAXPY, &eventGEMV);
 	CLErrorCheck(status, "GEMV", "-J^T * (O - T)", CHECK_EXIT);
 
-
-
 #pragma mark BENCHMARK_CALCULATE_D
 	if (net->benchmark == CLTrue) {
 		CLWaitForEvent(&eventGEMV, "eventGEMV");
 
-		CLSize elements = net->trainingTargets->elements + net->outputs->elements;
+		CLSize elements = net->trainingTargets->elements + 2 * net->outputs->elements;
 		CLSize operations = 2 * net->trainingTargets->elements;
 		CLBenchmarkElementsLog(eventAXPY, eventAXPY, elements, operations, "AXPY");
 
-		elements = net->jacobian->elements + net->d->elements + net->outputs->elements;
-		operations = 2 * net->jacobian->elements;
+		//y =  alfa A x + beta y
+		elements = net->jacobian->elements + 2 * net->d->elements + net->outputs->elements;
+		operations = 2 * net->jacobian->elements + net->d->elements;
 		CLBenchmarkElementsLog(eventGEMV, eventGEMV, elements, operations, "GEMV");
 	}
 	CLReleaseEvent(eventAXPY, "eventAXPY");
@@ -743,7 +742,7 @@ void CLNetCholeskyDecomposition(CLNet * net, CLDeviceContext * devContext)
 	CLNetMemSetMatrix(net, devContext, net->choleskySums, 0);
 
 	//Set ill to zero
-	net->ill = 0;
+	net->ill = -1;
 	CLEvent eventWriteIll;
 	clEnqueueWriteBuffer(devContext->queue[0], net->illMem, CLTrue, 0, sizeof(CLUInt), &net->ill, 0, NULL, &eventWriteIll);
 	CLReleaseEvent(eventWriteIll, "eventWriteIll");
@@ -772,6 +771,9 @@ void CLNetCholeskyDecomposition(CLNet * net, CLDeviceContext * devContext)
 	CLUInt error = clEnqueueReadBuffer(devContext->queue[0], net->illMem, CLTrue, 0, sizeof(CLUInt), &net->ill, 0, NULL, &eventReadIll);
 	CLErrorCheck(error, "clEnqueueReadBuffer", "read errorValue", CHECK_EXIT);
 
+//	CLUInt indexIllEvent = net->ill;
+	net->ill = net->ill >= 0;
+
 #pragma mark BENCHMARK_CHOLESKY_DECOMPOSITION
 
 	if (net->benchmark == CLTrue) {
@@ -780,7 +782,7 @@ void CLNetCholeskyDecomposition(CLNet * net, CLDeviceContext * devContext)
 
 		CLSize elements = (net->cholesky->elements - net->cholesky->rows) / 2 + net->cholesky->rows;
 		CLSize operations = elements * elements * elements / 3;
-		CLBenchmarkElementsLog(eventCholeskyDecomposition[0], eventCholeskyDecomposition[indexEvent], elements, operations, "CholeskyDecomposition");
+		CLBenchmarkElementsLog(eventCholeskyDecomposition[0], eventCholeskyDecomposition[indexEvent], elements, operations, (net->ill == 1 ? "CholeskyDecompositionIll*" : "CholeskyDecomposition"));
 	}
 
 	for (CLUInt i = 0; i < net->cholesky->rows; ++i) {
