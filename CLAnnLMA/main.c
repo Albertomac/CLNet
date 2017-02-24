@@ -31,9 +31,9 @@ void fillRandom(CLNetDataType * values, CLUInt nValues, CLNetDataType mult, CLNe
 {
 	for(CLUInt i = 0; i < nValues; ++i) {
 		values[i] = CLRandomValue() * mult + shift;
-		printf("%g, ", values[i]);
+//		printf("%g, ", values[i]);
 	}
-	printf("\n");
+//	printf("\n");
 }
 
 void normalize(CLNetDataType * values, CLUInt nValues)
@@ -93,8 +93,6 @@ void setupNetForXOR(CLNet * net)
 
 void setupNetForIris(CLNet * net)
 {
-	signal(SIGINT, closeHandler);
-
 	CLString name = "Iris";
 	CLUInt nPatterns = 150;
 	CLUInt nInputs = 4;
@@ -120,19 +118,20 @@ void setupNetForIris(CLNet * net)
 CLNetDataType function(CLNetDataType x)
 {
 //	return (sin(x) + 4 * cos(x)) / log(1 + sqrt(x));
-	return 2 * cos(10 * x) * sin(10 * x);
+	//return 2 * cos(10 * x) * sin(10 * x);
+	return cos(x);
 }
 
 void setupForFunction(CLNet * net)
 {
 	CLString name = "Function";
-	CLUInt nPatterns = 50;
+	CLUInt nPatterns = 1024 * 5;
 	CLUInt nInputs = 1;
 	CLUInt nLayers = 3;
 	CLUInt nTargets = 1;
 
-	CLUInt neuronsPerLayer[] = {8, 5, 1};
-	CLFunction functionPerLayer[] = {CLFunctionTansig, CLFunctionTansig, CLFunctionLinear};
+	CLUInt neuronsPerLayer[] = {32, 32, 1};
+	CLFunction functionPerLayer[] = {CLFunctionTansig, CLFunctionRadbas, CLFunctionLinear};
 
 	CLNetDataType * _patterns = calloc(nPatterns, sizeof(CLNetDataType));
 	CLNetDataType * _targets = calloc(nPatterns, sizeof(CLNetDataType));
@@ -144,7 +143,7 @@ void setupForFunction(CLNet * net)
 	}
 
 	normalize(_patterns, nPatterns);
-//	normalize(_targets, nPatterns);
+//	normalize(_targets, nPatterns);	
 
 	CLNetInit(net, nPatterns, nInputs, _patterns,
 			  nLayers, neuronsPerLayer, functionPerLayer,
@@ -153,7 +152,9 @@ void setupForFunction(CLNet * net)
 }
 
 int main(int argc, const char * argv[]) {
-	
+
+	signal(SIGINT, closeHandler);
+
 	CLRandomSetup();
 
 	platform = CLSelectPlatform(platformIndex);

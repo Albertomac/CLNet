@@ -25,8 +25,6 @@ void CLBenchmarkSetup(CLStringConst path)
 	fprintf(fB, "Label;Elements;Time(ms);Bandwidth(GB/s);GFlops\n");
 	fprintf(fE, "Label;Elements;Time(ms);GE/s;GFlops\n");
 
-	printf("benchmark saved!\n");
-
 	free(fBPath);
 	free(fEPath);
 }
@@ -67,5 +65,7 @@ void CLBenchmarkClose()
 	if (fE != NULL) {
 		fclose(fE);
 	}
+
+	printf("benchmark saved!\n");
 }
 

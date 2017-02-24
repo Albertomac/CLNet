@@ -560,9 +560,9 @@ void CLNetJacobianDiagonal(CLNet * net, CLDeviceContext * devContext, CLMatrix *
 	if (net->benchmark == CLTrue) {
 		CLWaitForEvent(event, "eventJacobianDiagonal");
 
-		CLSize elements = jacobian->elements + values->elements;
+		CLSize elements = (jacobian->columns - offset) * jacobian->rows + values->elements;
 		CLSize dataSize = elements * sizeof(CLNetDataType);
-		CLSize operations = jacobian->elements * 8;
+		CLSize operations = (jacobian->columns - offset) * jacobian->rows * 8;
 		CLBenchmarkBandwidthLog(*event, *event, elements, dataSize, operations, "JacobianDiagonal");
 	}
 }
