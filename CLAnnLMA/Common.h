@@ -101,7 +101,6 @@ do { if (DEBUG_LOG) fprintf(stderr, fmt, __VA_ARGS__); } while (0)
 #define kChiSquaredReduce		"chiSquaredReduce"
 #define kJacobianDiagonal		"jacobianDiagonal"
 #define kJacobianMultiply		"jacobianMultiply"
-#define kDelta					"delta"
 #define kUpdateDiagonal			"updateDiagonal"
 #define kCholeskyDecomposition	"choleskyDecomposition"
 

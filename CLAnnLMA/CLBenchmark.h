@@ -13,6 +13,7 @@
 #include "CLManager.h"
 
 void CLBenchmarkSetup(CLStringConst path);
-void CLBenchmarkLog(CLEvent start, CLEvent finish, CLSize loads, CLSize stores, CLSize elements, CLSize dataSize, CLSize operations, CLStringConst name);
+void CLBenchmarkBandwidthLog(CLEvent start, CLEvent finish, CLSize elements, CLSize dataSize, CLSize operations, CLStringConst name);
+void CLBenchmarkElementsLog(CLEvent start, CLEvent finish, CLSize elements, CLSize operations, CLStringConst name);
 void CLBenchmarkClose();
 #endif /* CLBenchmark_h */

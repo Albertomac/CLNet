@@ -1,7 +1,6 @@
 #define TRUE 1
 #define FALSE 0
 #define DEBUG TRUE
-#define COMPUTE_JACOBIAN_MULTIPLY_LINEAR 1
 
 
 #if CLNetPrecisionDouble
@@ -118,59 +117,31 @@ __kernel void chiSquaredReduce(__global CLNetDataType * restrict partialSums, __
 	reduceInline(localId, partialSums, localSums);
 }
 
-#define mod(x, y) (x) - (x)/(y) * (y)
-
-__kernel void jacobianDiagonal(__global CLNetDataType * restrict jacobian, uint offsetJacobian, uint rowsJacobian, uint columnsJacobian,
-							   __global const CLNetDataType * restrict values, uint rowsValues, uint columnsValues, uint dimDiag)
+__kernel void jacobianDiagonal(__global CLNetDataType * restrict jacobian,
+							   uint offsetJacobian,
+							   uint rowsJacobian, uint columnsJacobian,
+							   __global const CLNetDataType * restrict values,
+							   uint columnsValues, uint dimDiag)
 {
 	uint x = get_global_id(1);
+	uint xDiag = x / dimDiag;
 	uint y_old = get_global_id(0);
 	uint y = y_old + offsetJacobian;
+	uint yDiag = y_old / dimDiag;
 
 	if (x >= rowsJacobian || y >= columnsJacobian) return;
 
-	CLNetDataType value = values[(x / dimDiag * columnsValues) + (y_old / dimDiag)];
-	jacobian[x * columnsJacobian + y] = (mod(x, dimDiag) == mod(y_old, dimDiag)) * value;
+	CLNetDataType value = values[xDiag * columnsValues + yDiag];
+	jacobian[x * columnsJacobian + y] = ((x - xDiag * dimDiag) == (y_old - yDiag * dimDiag)) * value;
 }
 
-#if COMPUTE_JACOBIAN_MULTIPLY_LINEAR
-__kernel void jacobianMultiply(__global CLNetDataType * restrict jacobian, uint elementsJacobian, uint columnsJacobian,
+__kernel void jacobianMultiply(__global CLNetDataType * restrict jacobian,
+							   uint elementsJacobian, uint columnsJacobian,
 							   __global const CLNetDataType * restrict values)
 {
 	uint x = get_global_id(0);
-
 	if (x >= elementsJacobian) return;
-
 	jacobian[x] *= values[x / columnsJacobian];
-}
-#else 
-__kernel void jacobianMultiply(__global CLNetDataType * restrict jacobian, uint rowsJacobian, uint columnsJacobian,
-							   __global const CLNetDataType * restrict values)
-{
-	uint x = get_global_id(1);
-	uint y = get_global_id(0);
-
-	if (x >= rowsJacobian || y >= columnsJacobian) return;
-
-	jacobian[x * columnsJacobian + y] *= values[x];
-}
-#endif
-
-
-//delta
-__kernel void delta(__global CLNetDataType * restrict delta, __global CLNetDataType * restrict y, __global CLNetDataType * restrict f,
-					__global CLNetDataType * restrict jacobian,
-					uint ny, uint npar)
-{
-	uint x = get_global_id(0);
-
-	if (x < npar) {
-		CLNetDataType sum = 0;
-		for (uint i = 0; i < ny; ++i) {
-			sum += (y[i] - f[i]) * jacobian[i * npar + x];
-		}
-		delta[x] = sum;
-	}
 }
 
 __kernel void updateDiagonal(__global CLNetDataType * restrict matrix, uint dim, CLNetDataType mult)

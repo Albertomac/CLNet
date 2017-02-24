@@ -31,7 +31,6 @@ typedef struct {
 	CLKernel kernelJacobianDiagonal;
 	CLKernel kernelJacobianMultiply;
 	
-	CLKernel kernelDelta;
 	CLKernel kernelUpdateDiagonal;
 	CLKernel kernelCholeskyDecomposition;
 
